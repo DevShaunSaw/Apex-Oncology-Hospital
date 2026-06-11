@@ -1,26 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
 @import "tailwindcss";
 
+/* =========================================
+   THEME VARIABLES
+========================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Apex Colors */
+  --apex-teal: #7F52A1;
+  --apex-teal-dark: #4d2b67;
+  --apex-teal-light: #9c65c5;
+  --apex-gold: #FCBA16;
+  --apex-slate: #334155;
+  --apex-muted: #64748b;
+
+  /* Teal Palette */
+  --color-teal-50: #f5f0fa;
+  --color-teal-100: #e8ddf3;
+  --color-teal-200: #d1bbe7;
+  --color-teal-300: #ba99db;
+  --color-teal-400: #a377cf;
+  --color-teal-500: #8c55c3;
+  --color-teal-600: #7F52A1;
+  --color-teal-700: #684284;
+  --color-teal-800: #513267;
+  --color-teal-900: #513267;
+
+  /* Fonts */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Shadows */
+  --shadow-teal-glow: 0 0 30px rgba(13, 148, 136, 0.15);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 24px rgba(13, 148, 136, 0.15),
+    0 1px 4px rgba(0, 0, 0, 0.06);
+
+  /* Backgrounds */
+  --bg-hero-pattern:
+    radial-gradient(ellipse at 70% 50%,
+      rgba(13, 148, 136, 0.15) 0%,
+      transparent 60%),
+    radial-gradient(ellipse at 20% 80%,
+      rgba(20, 184, 166, 0.1) 0%,
+      transparent 50%);
+
+  --bg-card-glow:
+    linear-gradient(135deg,
+      rgba(13, 148, 136, 0.08) 0%,
+      rgba(255, 255, 255, 0) 100%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* =========================================
+   BASE STYLES
+========================================= */
+
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  background: #ffffff;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+/* =========================================
+   CUSTOM UTILITIES
+========================================= */
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .bg-hero-pattern {
+    background-image: var(--bg-hero-pattern);
+  }
+
+  .bg-card-glow {
+    background-image: var(--bg-card-glow);
+  }
+
+  .shadow-teal-glow {
+    box-shadow: var(--shadow-teal-glow);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .text-apex-teal {
+    color: var(--apex-teal);
+  }
+
+  .bg-apex-teal {
+    background-color: var(--apex-teal);
+  }
+
+  .border-apex-teal {
+    border-color: var(--apex-teal);
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease both;
+}
+
+@keyframes pulse-teal {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0);
+  }
+}
+
+.pulse-teal {
+  animation: pulse-teal 2s infinite;
 }
