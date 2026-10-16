@@ -66,10 +66,11 @@ export const chatMessages = [
 ];
 
 export const appointments = [
-    { id: "a1", patient: "Meera Joshi", doctor: "Dr. Priya Sharma", date: "2024-05-22", time: "10:00 AM", type: "Infusion — Cycle 3", status: "confirmed" },
-    { id: "a2", patient: "Rajesh Patel", doctor: "Dr. Arjun Mehta", date: "2024-05-23", time: "2:30 PM", type: "Post-Surgery Review", status: "pending" },
-    { id: "a3", patient: "Anita Krishnan", doctor: "Dr. Sunita Rao", date: "2024-05-25", time: "11:00 AM", type: "Radiation Planning", status: "confirmed" },
-    { id: "a4", patient: "Suresh Nambiar", doctor: "Dr. Rajan Nair", date: "2024-05-28", time: "9:00 AM", type: "Initial Consultation", status: "pending" },
+    { id: "a1", patient: "Meera Joshi", doctor: "Dr. Priya Sharma", date: "2024-05-22", time: "10:00 AM", type: "Infusion — Cycle 3", status: "confirmed", contact: "+91 00000 00000", diseaseDetails: "Disease Details", treatmentPlan: "Treatment Plan" },
+    { id: "a2", patient: "Rajesh Patel", doctor: "Dr. Arjun Mehta", date: "2024-05-23", time: "2:30 PM", type: "Post-Surgery Review", status: "pending", contact: "+91 00000 00000", diseaseDetails: "Disease Details", treatmentPlan: "Treatment Plan" },
+    { id: "a3", patient: "Anita Krishnan", doctor: "Dr. Sunita Rao", date: "2024-05-25", time: "11:00 AM", type: "Radiation Planning", status: "confirmed", contact: "+91 00000 00000", diseaseDetails: "Disease Details", treatmentPlan: "Treatment Plan" },
+    { id: "a4", patient: "Suresh Nambiar", doctor: "Dr. Rajan Nair", date: "2024-05-28", time: "9:00 AM", type: "Initial Consultation", status: "pending", contact: "+91 00000 00000", diseaseDetails: "Disease Details", treatmentPlan: "Treatment Plan" },
+    { id: "a5", patient: "Meera Joshi", doctor: "Dr. Priya Sharma", date: "2024-05-29", time: "1:00 PM", type: "Consultation", status: "confirmed", contact: "+91 00000 00000", diseaseDetails: "Disease Details", treatmentPlan: "Treatment Plan" },
 ];
 
 export const events = [
@@ -95,15 +96,15 @@ export const diseaseInfo = [
 ];
 
 export const patientProfile = {
-    name: "Meera Joshi",
-    age: 52,
+    name: "Shaunak Sawant",
+    age: 22,
     id: "AOC-2024-00128",
-    doctor: "Dr. Priya Sharma",
+    doctor: "Dr. Rajeev Wagle",
     package: "Care Plus",
     status: "Active Treatment",
-    disease: "Breast Cancer — Stage II",
-    since: "February 2024",
-    nextAppointment: "May 22, 2024 — 10:00 AM",
+    disease: "Lung Cancer",
+    since: "July 2026",
+    nextAppointment: "July 22, 2026 — 10:00 AM",
     symptoms: [
         { date: "May 14", symptom: "Mild nausea", severity: "Low" },
         { date: "May 12", symptom: "Fatigue", severity: "Moderate" },
@@ -121,4 +122,168 @@ export const languages = [
     { code: "te", label: "తెలుగు" },
     { code: "ml", label: "മലയാളം" },
     { code: "kn", label: "ಕನ್ನಡ" },
+];
+
+export const doctorPatients = [
+    {
+        id: "p1",
+        patientId: "AOC-2024-00128",
+        name: "Meera Joshi",
+        initials: "MJ",
+        age: 52,
+        gender: "Female",
+        city: "Pune",
+        status: "Active Treatment",
+        disease: "Breast Cancer",
+        stage: "Stage II",
+        type: "Chemotherapy",
+        recoveryIndex: 78,
+        vitals: {
+            bp: "118/76",
+            temp: "98.4°F",
+            pulse: "72 bpm",
+            weight: "62 kg"
+        },
+        labTrends: [
+            { label: "Hemoglobin", value: "11.2 g/dL", status: "low" },
+            { label: "WBC", value: "4.5 k/uL", status: "normal" },
+            { label: "Platelets", value: "180k", status: "normal" }
+        ],
+        treatmentPhase: "Adjuvant Chemo",
+        cycleProgress: { current: 3, total: 6 },
+        recentSymptoms: [
+            { symptom: "Mild nausea", date: "May 14", severity: "Low" },
+            { symptom: "Fatigue", date: "May 12", severity: "Moderate" }
+        ],
+        nextAppointment: "May 22, 10:00 AM",
+        medications: ["Trastuzumab", "Paclitaxel", "Ondansetron"],
+        allergies: ["Penicillin"],
+        phone: "+91 98765 43210",
+        email: "meera.joshi@email.com",
+        notes: "Experiencing mild neuropathy in fingertips. Advised to monitor.",
+        package: "Care Plus",
+        since: "Feb 2024",
+        prognosis: "Good",
+        flagged: false,
+        unreadMessages: 0
+    },
+    {
+        id: "p2",
+        patientId: "AOC-2024-00244",
+        name: "Rajesh Patel",
+        initials: "RP",
+        age: 61,
+        gender: "Male",
+        city: "Ahmedabad",
+        status: "Remission",
+        disease: "Lung Cancer",
+        stage: "Stage I",
+        type: "Post-Surgery",
+        recoveryIndex: 92,
+        vitals: {
+            bp: "124/80",
+            temp: "98.6°F",
+            pulse: "68 bpm",
+            weight: "74 kg"
+        },
+        labTrends: [
+            { label: "CEA Marker", value: "1.8 ng/mL", status: "normal" },
+            { label: "WBC", value: "6.2 k/uL", status: "normal" }
+        ],
+        treatmentPhase: "Surveillance",
+        cycleProgress: { current: 6, total: 6 },
+        recentSymptoms: [],
+        nextAppointment: "May 23, 2:30 PM",
+        medications: ["Multivitamins"],
+        allergies: [],
+        phone: "+91 98765 12345",
+        email: "rajesh.patel@email.com",
+        notes: "Post-op scan clear. Patient reports good energy levels.",
+        package: "Diagnostic Starter",
+        since: "Aug 2023",
+        prognosis: "Excellent",
+        flagged: false,
+        unreadMessages: 1
+    },
+    {
+        id: "p3",
+        patientId: "AOC-2024-00302",
+        name: "Anita Krishnan",
+        initials: "AK",
+        age: 47,
+        gender: "Female",
+        city: "Chennai",
+        status: "Active Treatment",
+        disease: "Lymphoma",
+        stage: "Stage III",
+        type: "Radiation",
+        recoveryIndex: 65,
+        vitals: {
+            bp: "110/70",
+            temp: "99.1°F",
+            pulse: "82 bpm",
+            weight: "58 kg"
+        },
+        labTrends: [
+            { label: "Hemoglobin", value: "10.5 g/dL", status: "low" },
+            { label: "WBC", value: "2.1 k/uL", status: "critical" }
+        ],
+        treatmentPhase: "Radiation Planning",
+        cycleProgress: { current: 12, total: 20 },
+        recentSymptoms: [
+            { symptom: "Fever", date: "May 15", severity: "High" },
+            { symptom: "Fatigue", date: "May 14", severity: "Moderate" }
+        ],
+        nextAppointment: "May 25, 11:00 AM",
+        medications: ["Prednisone", "Filgrastim", "Acyclovir"],
+        allergies: ["Sulfa drugs"],
+        phone: "+91 94440 56789",
+        email: "anita.k@email.com",
+        notes: "WBC count is critically low. Flagged for immediate oncologist review. Advised to stay in isolation.",
+        package: "Comprehensive Heal",
+        since: "Jan 2024",
+        prognosis: "Guarded",
+        flagged: true,
+        unreadMessages: 3
+    },
+    {
+        id: "p4",
+        patientId: "AOC-2024-00411",
+        name: "Suresh Nambiar",
+        initials: "SN",
+        age: 58,
+        gender: "Male",
+        city: "Kochi",
+        status: "Post-Chemotherapy",
+        disease: "Prostate Cancer",
+        stage: "Stage II",
+        type: "Hormone Therapy",
+        recoveryIndex: 85,
+        vitals: {
+            bp: "130/82",
+            temp: "98.2°F",
+            pulse: "70 bpm",
+            weight: "81 kg"
+        },
+        labTrends: [
+            { label: "PSA Marker", value: "0.4 ng/mL", status: "normal" },
+            { label: "Hemoglobin", value: "13.8 g/dL", status: "normal" }
+        ],
+        treatmentPhase: "Maintenance",
+        cycleProgress: { current: 2, total: 4 },
+        recentSymptoms: [
+            { symptom: "Hot flashes", date: "May 11", severity: "Low" }
+        ],
+        nextAppointment: "May 28, 9:00 AM",
+        medications: ["Leuprolide", "Calcium + D3"],
+        allergies: [],
+        phone: "+91 98950 98765",
+        email: "suresh.nambiar@email.com",
+        notes: "Hormonal therapy side effects are tolerable. Continuing treatment.",
+        package: "Care Plus",
+        since: "Nov 2023",
+        prognosis: "Good",
+        flagged: false,
+        unreadMessages: 0
+    }
 ];

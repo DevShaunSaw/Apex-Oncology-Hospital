@@ -1,11 +1,72 @@
 "use client";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { patientProfile } from "../data/mockData";
-import { Calendar, MessageSquare, Activity, FileText, AlertCircle, ChevronRight, TrendingUp, Heart } from "lucide-react";
+import { Calendar, MessageSquare, Activity, FileText, AlertCircle, ChevronRight, TrendingUp, Heart, Clock } from "lucide-react";
 
 export default function PatientDashboard() {
-    const { setPage, setActiveChatPartner } = useApp();
+    const { setPage, setActiveChatPartner, currentUser } = useApp();
     const p = patientProfile;
+    const [liveSymptoms, setLiveSymptoms] = useState<any[]>([]);
+    const [liveVitals, setLiveVitals] = useState<any>(p.vitals);
+
+    useEffect(() => {
+        const fetchPatientData = async () => {
+            try {
+                const url = currentUser?._id ? `/api/patient?id=${currentUser._id}` : "/api/patient";
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.success && data.patient) {
+                    if (data.patient.recentSymptoms) {
+                        setLiveSymptoms([...data.patient.recentSymptoms].reverse());
+                    } else {
+                        setLiveSymptoms(p.symptoms);
+                    }
+                    if (data.patient.vitals) {
+                        setLiveVitals({
+                            bp: data.patient.vitals.bp || p.vitals.bp,
+                            weight: data.patient.vitals.weight || p.vitals.weight,
+                            temp: data.patient.vitals.temp || p.vitals.temp,
+                            pulse: data.patient.vitals.pulse || (p.vitals as any)?.pulse || "72 bpm",
+                            lastUpdated: "Recently updated"
+                        });
+                    }
+                } else {
+                    setLiveSymptoms(p.symptoms);
+                }
+            } catch {
+                setLiveSymptoms(p.symptoms);
+            }
+        };
+        fetchPatientData();
+    }, [currentUser]);
+
+    const displaySymptoms = liveSymptoms.length > 0 ? liveSymptoms : p.symptoms;
+
+    const formatSymptomTimestamp = (s: any) => {
+        if (s.createdAt) {
+            try {
+                const d = new Date(s.createdAt);
+                if (!isNaN(d.getTime())) {
+                    const dayDate = d.toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                    });
+                    const time = d.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    });
+                    return { dayDate, time };
+                }
+            } catch (e) {}
+        }
+        if (s.date && s.date.includes("•")) {
+            const parts = s.date.split("•").map((p: string) => p.trim());
+            return { dayDate: parts[0], time: parts[1] || "" };
+        }
+        return { dayDate: s.date || "Recorded", time: s.time || "" };
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -14,7 +75,7 @@ export default function PatientDashboard() {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold">MJ</div>
+                            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold">SS</div>
                             <div>
                                 <h1 className="text-2xl font-display font-semibold">{p.name}</h1>
                                 <div className="text-teal-200 text-sm flex flex-wrap gap-3 mt-1">
@@ -80,9 +141,9 @@ export default function PatientDashboard() {
 
                         {/* Vitals */}
                         <div className="mt-6 pt-5 border-t border-slate-100">
-                            <h4 className="text-sm font-semibold text-slate-600 mb-3">Latest Vitals <span className="text-xs font-normal text-slate-400 ml-2">{p.vitals.lastUpdated}</span></h4>
+                            <h4 className="text-sm font-semibold text-slate-600 mb-3">Latest Vitals <span className="text-xs font-normal text-slate-400 ml-2">{liveVitals.lastUpdated || p.vitals.lastUpdated}</span></h4>
                             <div className="grid grid-cols-4 gap-3">
-                                {[["BP", p.vitals.bp], ["Weight", p.vitals.weight], ["Temp", p.vitals.temp], ["Status", "Stable"]].map(([k, v]) => (
+                                {[["BP", liveVitals.bp || "N/A"], ["Pulse", liveVitals.pulse || "N/A"], ["Temp", liveVitals.temp || "N/A"], ["Weight", liveVitals.weight || "N/A"]].map(([k, v]) => (
                                     <div key={k} className="bg-teal-50 rounded-xl p-3 text-center">
                                         <div className="text-xs text-teal-500 mb-1">{k}</div>
                                         <div className="text-sm font-bold text-teal-800">{v}</div>
@@ -117,15 +178,29 @@ export default function PatientDashboard() {
                                 <button onClick={() => setPage("symptoms")} className="text-xs text-teal-600 hover:underline">View all</button>
                             </div>
                             <div className="space-y-2">
-                                {p.symptoms.map((s, i) => (
-                                    <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                                        <div>
-                                            <div className="text-sm font-medium text-slate-700">{s.symptom}</div>
-                                            <div className="text-xs text-slate-400">{s.date}</div>
+                                {displaySymptoms.slice(0, 5).map((s: any, i: number) => {
+                                    const ts = formatSymptomTimestamp(s);
+                                    return (
+                                        <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-700">{s.symptom}</div>
+                                                <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+                                                    <span>{ts.dayDate}</span>
+                                                    {ts.time && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="flex items-center gap-0.5 text-slate-500">
+                                                                <Clock size={11} className="text-teal-600" />
+                                                                {ts.time}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${s.severity === "Low" ? "bg-green-50 text-green-600" : s.severity === "Moderate" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{s.severity}</span>
                                         </div>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${s.severity === "Low" ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"}`}>{s.severity}</span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

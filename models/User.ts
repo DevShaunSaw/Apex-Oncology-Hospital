@@ -22,9 +22,53 @@ const UserSchema = new mongoose.Schema(
     experience: { type: String },
     rating: { type: Number, default: 4.8 },
     available: { type: Boolean, default: true },
-    
+
     // Patient specific fields
     assignedDoctor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    patientId: { type: String },
+    initials: { type: String },
+    age: { type: Number },
+    status: { type: String },
+    disease: { type: String },
+    stage: { type: String },
+    type: { type: String },
+    recoveryIndex: { type: Number },
+    vitals: {
+      bp: { type: String },
+      temp: { type: String },
+      pulse: { type: String },
+      weight: { type: String }
+    },
+    labTrends: [
+      {
+        label: { type: String },
+        value: { type: String },
+        status: { type: String }
+      }
+    ],
+    treatmentPhase: { type: String },
+    cycleProgress: {
+      current: { type: Number },
+      total: { type: Number }
+    },
+    recentSymptoms: [
+      {
+        symptom: { type: String },
+        date: { type: String },
+        severity: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        time: { type: String }
+      }
+    ],
+    nextAppointment: { type: String },
+    medications: [{ type: String }],
+    allergies: [{ type: String }],
+    notes: { type: String },
+    package: { type: String },
+    since: { type: String },
+    prognosis: { type: String },
+    flagged: { type: Boolean, default: false },
+    unreadMessages: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

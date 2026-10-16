@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback_secret") as { id: string };
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password").populate("assignedDoctor", "name specialty experience rating available");
 
     if (!user) {
       return NextResponse.json({ user: null });

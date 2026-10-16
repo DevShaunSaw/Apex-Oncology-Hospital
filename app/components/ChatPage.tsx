@@ -1,13 +1,27 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useApp } from "../context/AppContext";
-import { Send, Paperclip, Phone, Video, MoreVertical, Calendar, FileText, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Send, Paperclip, Phone, Video, MoreVertical, Calendar, FileText, ChevronRight, Image as ImageIcon, CheckCircle2, Clock, X, AlertCircle } from "lucide-react";
 
-const slotDates = [
-    { date: "May 22", slots: ["9:00 AM", "10:00 AM", "2:00 PM", "3:30 PM"] },
-    { date: "May 23", slots: ["10:00 AM", "11:30 AM", "4:00 PM"] },
-    { date: "May 24", slots: ["9:30 AM", "1:00 PM", "2:30 PM"] },
+const HOURLY_SLOTS = [
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "01:00 PM",
+    "02:00 PM",
+    "03:00 PM",
+    "04:00 PM",
+    "05:00 PM"
 ];
+
+// Helper to format Date to YYYY-MM-DD in local time
+const getISODateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
 
 export default function ChatPage() {
     const { currentUser, role, activeChatPartner, setActiveChatPartner } = useApp();
@@ -15,7 +29,18 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState("");
     const [showSlots, setShowSlots] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    
+    // Date picker state - defaults to tomorrow (next day)
+    const [selectedDate, setSelectedDate] = useState<string>(() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return getISODateString(tomorrow);
+    });
+    
+    const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -23,6 +48,61 @@ export default function ChatPage() {
 
     const [showNewChatDropdown, setShowNewChatDropdown] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+
+    // Fetch existing appointments when slot drawer opens to check booked slots
+    useEffect(() => {
+        if (!showSlots || role !== "doctor") return;
+        const fetchExisting = async () => {
+            setLoadingSlots(true);
+            try {
+                const res = await fetch("/api/appointments");
+                const data = await res.json();
+                if (data.success && Array.isArray(data.appointments)) {
+                    setExistingAppointments(data.appointments);
+                }
+            } catch (err) {
+                console.error("Error fetching appointments for slots:", err);
+            } finally {
+                setLoadingSlots(false);
+            }
+        };
+        fetchExisting();
+    }, [showSlots, role]);
+
+    // Minimum selectable date is tomorrow
+    const minDateStr = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return getISODateString(d);
+    })();
+
+    // Helper to format date display e.g. "Oct 17, 2026"
+    const formatDateDisplay = (isoStr: string) => {
+        try {
+            const [y, m, d] = isoStr.split("-").map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            return dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        } catch {
+            return isoStr;
+        }
+    };
+
+    // Calculate which hourly slots are already booked on the selected date
+    const bookedSlotsForSelectedDate = useMemo(() => {
+        if (!selectedDate) return new Set<string>();
+        const booked = new Set<string>();
+        existingAppointments.forEach(appt => {
+            // Check matching date (either ISO YYYY-MM-DD or partial match)
+            if (appt.status !== "cancelled" && (appt.date === selectedDate || appt.date?.includes(selectedDate))) {
+                if (appt.time) {
+                    // Normalize time format e.g. "09:00 AM" or "9:00 AM"
+                    const normalizedApptTime = appt.time.replace(/^0/, "").toUpperCase().trim();
+                    booked.add(normalizedApptTime);
+                }
+            }
+        });
+        return booked;
+    }, [existingAppointments, selectedDate]);
 
     // Fetch all available contact options (doctors for patient, patients for doctor)
     useEffect(() => {
@@ -52,7 +132,6 @@ export default function ChatPage() {
                 const data = await res.json();
                 if (data.conversations) {
                     setConversations(data.conversations);
-                    // If no active partner is selected yet, choose the first one
                     if (!activeChatPartner && data.conversations.length > 0) {
                         setActiveChatPartner(data.conversations[0]);
                     }
@@ -115,12 +194,43 @@ export default function ChatPage() {
         }
     };
 
-    const bookSlot = async (date: string, slot: string) => {
-        if (!activeChatPartner) return;
-        setShowSlots(false);
+    const [bookingType, setBookingType] = useState("Consultation");
+    const [isBooking, setIsBooking] = useState(false);
 
-        const apptText = `Appointment confirmed: ${date}, ${slot} — Apex Onco Care`;
+    const [bookingError, setBookingError] = useState<string | null>(null);
+
+    const bookSlot = async (date: string, slot: string) => {
+        if (!activeChatPartner || isBooking) return;
+        setIsBooking(true);
+        setBookingError(null);
+
+        const appointmentType = bookingType || "Consultation";
+        const formattedDisplayDate = formatDateDisplay(date);
+        const apptText = `Appointment scheduled: ${formattedDisplayDate}, ${slot} (${appointmentType}) — Apex Onco Care`;
+        
         try {
+            // 1. Create real appointment in the database
+            const apptRes = await fetch("/api/appointments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    patientId: activeChatPartner._id,
+                    date: date,
+                    time: slot,
+                    type: appointmentType,
+                    contact: activeChatPartner.phone || activeChatPartner.email || "+91 99999 99999",
+                    diseaseDetails: activeChatPartner.primaryConcern || activeChatPartner.healthHistory || "Consultation scheduled via chat",
+                    treatmentPlan: "Review during scheduled chat visit",
+                }),
+            });
+            const apptData = await apptRes.json();
+            
+            if (!apptRes.ok || !apptData.success) {
+                setBookingError(apptData.error || "Failed to schedule appointment.");
+                return;
+            }
+
+            // 2. Post appointment confirmation message to the chat
             const res = await fetch("/api/chat/messages", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -134,8 +244,23 @@ export default function ChatPage() {
             if (data.message) {
                 setMessages((prev) => [...prev, data.message]);
             }
-        } catch (error) {
+
+            // 3. Update existingAppointments state with newly booked appointment
+            if (apptData.appointment) {
+                setExistingAppointments((prev) => [...prev, apptData.appointment]);
+            }
+
+            // 4. Trigger green success toast & close panel
+            setShowSlots(false);
+            setToastMessage(`Appointment booked successfully with ${activeChatPartner.name} on ${formattedDisplayDate} at ${slot}!`);
+            setTimeout(() => {
+                setToastMessage(null);
+            }, 5000);
+        } catch (error: any) {
             console.error("Error booking appointment:", error);
+            setBookingError("Network or server error while booking appointment.");
+        } finally {
+            setIsBooking(false);
         }
     };
 
@@ -153,21 +278,24 @@ export default function ChatPage() {
                 body: formData,
             });
             const uploadData = await res.json();
-            
+
             if (res.ok && uploadData.fileUrl) {
-                // Send chat message with file details
+                const isImage = ["PNG", "JPG", "JPEG", "WEBP", "GIF"].includes(uploadData.fileType?.toUpperCase());
+                const validatedType = isImage ? "image" : "document";
+
                 const msgRes = await fetch("/api/chat/messages", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         receiverId: activeChatPartner._id,
                         message: `Shared file: ${uploadData.fileName}`,
-                        type: "file",
+                        type: validatedType,
                         fileName: uploadData.fileName,
                         fileUrl: uploadData.fileUrl,
                         fileType: uploadData.fileType,
                     }),
                 });
+
                 const msgData = await msgRes.json();
                 if (msgData.message) {
                     setMessages((prev) => [...prev, msgData.message]);
@@ -261,9 +389,9 @@ export default function ChatPage() {
                     </div>
                     {activeChatPartner && (
                         <div className="flex items-center gap-2">
-                            {role === "patient" && (
-                                <button onClick={() => setShowSlots(!showSlots)} className="flex items-center gap-1.5 text-sm text-teal-600 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-50 transition-colors">
-                                    <Calendar size={14} /> Book Appointment
+                            {role === "doctor" && (
+                                <button onClick={() => setShowSlots(!showSlots)} className="flex items-center gap-1.5 text-sm text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition-colors font-medium">
+                                    <Calendar size={14} className="text-teal-600" /> Book Appointment
                                 </button>
                             )}
                             <button className="p-2 text-slate-400 hover:text-teal-600 rounded-lg hover:bg-teal-50"><Phone size={18} /></button>
@@ -273,29 +401,153 @@ export default function ChatPage() {
                     )}
                 </div>
 
-                {/* Slot Picker */}
-                {showSlots && (
-                    <div className="bg-teal-50 border-b border-teal-100 px-4 py-4">
-                        <h4 className="text-sm font-semibold text-teal-800 mb-3 flex items-center gap-2"><Calendar size={16} /> Select Appointment Slot</h4>
-                        <div className="flex gap-3 overflow-x-auto pb-2">
-                            {slotDates.map(d => (
-                                <div key={d.date} className="shrink-0">
-                                    <button onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}
-                                        className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-colors ${selectedDate === d.date ? "bg-teal-600 text-white border-teal-600" : "bg-white text-teal-700 border-teal-200 hover:bg-teal-100"}`}>
-                                        {d.date}
+                {/* Slot Picker for Doctor */}
+                {role === "doctor" && showSlots && (
+                    <div className="bg-slate-50 border-b border-teal-100 p-4 transition-all animate-fadeIn">
+                        <div className="bg-white rounded-2xl border border-teal-100 p-4 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
+                                        <Calendar size={17} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-slate-800">
+                                            Schedule Patient Visit
+                                        </h4>
+                                        <p className="text-xs text-slate-400">
+                                            Book an appointment with {activeChatPartner.name}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-slate-500 font-medium">Type:</span>
+                                        <select 
+                                            value={bookingType}
+                                            onChange={(e) => setBookingType(e.target.value)}
+                                            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+                                        >
+                                            <option value="Consultation">Consultation</option>
+                                            <option value="Follow-up">Follow-up</option>
+                                            <option value="Lab Review">Lab Review</option>
+                                            <option value="Infusion">Infusion</option>
+                                            <option value="Second Opinion">Second Opinion</option>
+                                        </select>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowSlots(false)}
+                                        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                                        title="Close"
+                                    >
+                                        <X size={16} />
                                     </button>
-                                    {selectedDate === d.date && (
-                                        <div className="mt-2 flex flex-col gap-1.5">
-                                            {d.slots.map(slot => (
-                                                <button key={slot} onClick={() => bookSlot(d.date, slot)}
-                                                    className="bg-white text-teal-700 text-xs px-3 py-1.5 rounded-lg border border-teal-200 hover:bg-teal-600 hover:text-white transition-colors">
-                                                    {slot}
-                                                </button>
-                                            ))}
+                                </div>
+                            </div>
+
+                            {bookingError && (
+                                <div className="mb-3 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                                    <AlertCircle size={15} className="shrink-0" />
+                                    <span>{bookingError}</span>
+                                </div>
+                            )}
+
+                            {/* Date Picker & Hourly Slot Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Date Picker Input */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                                        <Calendar size={13} className="text-teal-600" />
+                                        Appointment Date
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        min={minDateStr}
+                                        value={selectedDate}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                setSelectedDate(e.target.value);
+                                            }
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-teal-500 focus:bg-white transition-all font-medium"
+                                    />
+                                    <p className="text-[11px] text-slate-400">
+                                        Selected: <span className="font-semibold text-teal-700">{formatDateDisplay(selectedDate)}</span>
+                                    </p>
+                                </div>
+
+                                {/* Hourly Time Slots */}
+                                <div className="md:col-span-2 space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                                            <Clock size={13} className="text-teal-600" />
+                                            Available Hourly Slots
+                                        </label>
+                                        <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                                            <span className="flex items-center gap-1">
+                                                <span className="w-2 h-2 rounded-full bg-teal-500"></span> Available
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <span className="w-2 h-2 rounded-full bg-slate-300"></span> Booked
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {loadingSlots ? (
+                                        <div className="py-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+                                            <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                                            Checking booked slots...
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 pt-1">
+                                            {HOURLY_SLOTS.map((slot) => {
+                                                const normalizedSlot = slot.replace(/^0/, "").toUpperCase().trim();
+                                                const isBooked = bookedSlotsForSelectedDate.has(normalizedSlot);
+
+                                                return (
+                                                    <button
+                                                        key={slot}
+                                                        type="button"
+                                                        disabled={isBooked || isBooking}
+                                                        onClick={() => bookSlot(selectedDate, slot)}
+                                                        className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all text-center flex flex-col items-center justify-center ${
+                                                            isBooked
+                                                                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60 line-through"
+                                                                : "bg-white text-teal-800 border-teal-200 hover:bg-teal-600 hover:text-white hover:border-teal-600 hover:shadow-sm active:scale-95 cursor-pointer"
+                                                        }`}
+                                                        title={isBooked ? "Slot already booked" : `Book ${slot}`}
+                                                    >
+                                                        <span>{slot}</span>
+                                                        <span className="text-[9px] mt-0.5 opacity-80 font-normal">
+                                                            {isBooked ? "Booked" : "Available"}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Green Success Toast */}
+                {toastMessage && (
+                    <div className="fixed top-5 right-5 z-50 animate-slideIn">
+                        <div className="bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-500 max-w-md">
+                            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={18} className="text-white" />
+                            </div>
+                            <div className="text-xs font-medium leading-relaxed flex-1">
+                                <span className="font-bold block text-sm">Appointment Confirmed</span>
+                                {toastMessage}
+                            </div>
+                            <button
+                                onClick={() => setToastMessage(null)}
+                                className="p-1 hover:bg-white/20 rounded-lg text-white/80 hover:text-white transition-colors"
+                            >
+                                <X size={15} />
+                            </button>
                         </div>
                     </div>
                 )}
@@ -304,6 +556,9 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                     {messages.map((msg) => {
                         const isMe = msg.sender === currentUser?._id || msg.sender?.toString() === currentUser?._id;
+                        // Map schema enum values into a shared UI layout identifier
+                        const isFileMessage = msg.type === "document" || msg.type === "image";
+
                         return (
                             <div key={msg._id || msg.id}>
                                 {msg.type === "appointment" ? (
@@ -323,16 +578,16 @@ export default function ChatPage() {
                                         <div className={`max-w-xs sm:max-w-md ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
                                             {!isMe && <span className="text-xs text-slate-400 ml-1">{activeChatPartner?.name}</span>}
                                             <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe ? "bg-teal-600 text-white rounded-br-none" :
-                                                    msg.type === "file" ? "bg-white border border-slate-200 rounded-bl-none" :
-                                                        "bg-white border border-slate-100 rounded-bl-none shadow-sm"
+                                                isFileMessage ? "bg-white border border-slate-200 rounded-bl-none shadow-sm" :
+                                                    "bg-white border border-slate-100 rounded-bl-none shadow-sm"
                                                 }`}>
-                                                {msg.type === "file" ? (
+                                                {isFileMessage ? (
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center"><FileText size={18} className="text-teal-600" /></div>
                                                         <div>
-                                                            <div className="font-medium text-slate-700 text-sm truncate max-w-[150px]">{msg.fileName}</div>
+                                                            <div className="font-medium text-slate-700 text-sm truncate max-w-[150px]">{msg.fileName || "Uploaded File"}</div>
                                                             <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 flex items-center gap-1 mt-0.5 hover:underline">
-                                                                {msg.fileType} <ChevronRight size={12} /> View / Download
+                                                                {msg.fileType || "View"} <ChevronRight size={12} /> View / Download
                                                             </a>
                                                         </div>
                                                     </div>
@@ -340,9 +595,10 @@ export default function ChatPage() {
                                                     msg.message
                                                 )}
                                             </div>
-                                            {msg.type === "file" && ["PNG", "JPG", "JPEG", "WEBP", "GIF"].includes(msg.fileType?.toUpperCase()) && (
-                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden max-w-[200px]">
-                                                    <img src={msg.fileUrl} alt={msg.fileName} className="object-cover w-full h-auto max-h-[150px]" />
+                                            {/* Show Image preview if message type is explicit or contains image file type mapping */}
+                                            {(msg.type === "image" || ["PNG", "JPG", "JPEG", "WEBP", "GIF"].includes(msg.fileType?.toUpperCase())) && msg.fileUrl && (
+                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden max-w-[200px] shadow-sm bg-white p-1">
+                                                    <img src={msg.fileUrl} alt={msg.fileName || "Chat Upload"} className="object-cover w-full h-auto max-h-[150px] rounded-lg" />
                                                 </div>
                                             )}
                                             <span className="text-xs text-slate-400 mx-1">{msg.time}</span>
@@ -362,7 +618,6 @@ export default function ChatPage() {
                 {activeChatPartner && (
                     <div className="bg-white border-t border-slate-100 px-4 py-3">
                         <div className="flex items-end gap-2">
-                            {/* Hidden file inputs */}
                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
                             <input type="file" ref={imageInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
 
@@ -374,7 +629,7 @@ export default function ChatPage() {
                                 className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`} title="Upload Image">
                                 <ImageIcon size={18} />
                             </button>
-                            
+
                             <textarea
                                 rows={1}
                                 value={input}

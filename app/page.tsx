@@ -9,6 +9,8 @@ import ServicesPage from "./components/ServicesPage";
 import EventsPage from "./components/EventsPage";
 import AboutPage from "./components/AboutPage";
 import AppointmentsPage from "./components/AppointmentsPage";
+import PatientsPage from "./components/PatientsPage";
+import EventsAdminPage from "./components/EventsAdminPage";
 import { DiseaseInfoPage, SymptomsPage, DoctorDashboard, AdminDashboard } from "./components/OtherPages";
 import { useApp } from "./context/AppContext";
 
@@ -27,10 +29,12 @@ export default function App() {
       case "packages": return <PackagesPage />;
       case "services": return <ServicesPage />;
       case "events": return <EventsPage />;
+      case "events-admin": return <EventsAdminPage />;
       case "about": return <AboutPage />;
       case "appointments": return <AppointmentsPage />;
       case "disease-info": return <DiseaseInfoPage />;
       case "symptoms": return <SymptomsPage />;
+      case "patients": return <PatientsPage />;
       default: return <HomePage />;
     }
   };

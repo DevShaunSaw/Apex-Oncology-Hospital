@@ -2,23 +2,71 @@ import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema(
   {
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    message: { type: String },
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    message: {
+      type: String,
+      default: "",
+    },
+
     type: {
       type: String,
-      enum: ["text", "file", "appointment"],
+      enum: [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "document",
+        "appointment",
+      ],
       default: "text",
     },
-    // File metadata (if type is "file")
-    fileName: { type: String },
-    fileUrl: { type: String },
-    fileType: { type: String },
-    
-    // Formatted time for client display, e.g. "09:14 AM"
-    time: { type: String },
+
+    fileName: {
+      type: String,
+    },
+
+    fileUrl: {
+      type: String,
+    },
+
+    fileType: {
+      type: String,
+    },
+
+    mimeType: {
+      type: String,
+    },
+
+    objectKey: {
+      type: String,
+    },
+
+    fileSize: {
+      type: Number,
+    },
+
+    read: {
+      type: Boolean,
+      default: false,
+    },
+
+    time: {
+      type: String,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-export default mongoose.models.Message || mongoose.model("Message", MessageSchema);
+export default mongoose.models.Message ||
+  mongoose.model("Message", MessageSchema);

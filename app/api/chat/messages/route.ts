@@ -62,6 +62,15 @@ export async function POST(req: Request) {
       minute: "2-digit",
     });
 
+    console.log({
+      receiverId,
+      message,
+      type,
+      fileName,
+      fileUrl,
+      fileType,
+    });
+
     const newMsg = await Message.create({
       sender: myId,
       receiver: receiverId,

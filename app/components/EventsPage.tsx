@@ -1,14 +1,44 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
-import { events } from "../data/mockData";
 import { Calendar, MapPin, Users, Video, Mic } from "lucide-react";
 
 export default function EventsPage() {
     const { setPage } = useApp();
+    const [eventsList, setEventsList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("All");
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const res = await fetch("/api/events");
+                const data = await res.json();
+                if (data.success) {
+                    setEventsList(data.events);
+                }
+            } catch (err) {
+                console.error("Error loading events:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchEvents();
+    }, []);
+
     const types = ["All", "Seminar", "Workshop", "Support Group"];
-    const filtered = filter === "All" ? events : events.filter(e => e.type === filter);
+    const filtered = filter === "All" ? eventsList : eventsList.filter(e => e.type === filter);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-teal-800 font-medium">Loading Events...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
