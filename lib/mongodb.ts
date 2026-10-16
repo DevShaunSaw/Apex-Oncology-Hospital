@@ -5,10 +5,6 @@ import Message from "@/models/Message";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable inside .env");
-}
-
 let cached = (global as any).mongoose;
 
 if (!cached) {
@@ -16,6 +12,11 @@ if (!cached) {
 }
 
 export async function connectToDatabase() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("Please define the MONGODB_URI environment variable inside .env or Vercel Environment Variables");
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
@@ -26,7 +27,7 @@ export async function connectToDatabase() {
       dbName: "apex",
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then(async (mongooseInstance) => {
+    cached.promise = mongoose.connect(uri, opts).then(async (mongooseInstance) => {
       return mongooseInstance;
     });
   }
