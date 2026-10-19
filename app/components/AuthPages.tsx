@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useApp } from "../context/AppContext";
-import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 
 export function RegisterPage() {
     const { setPage, register } = useApp();
@@ -56,12 +57,25 @@ export function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex items-center justify-center px-4 py-12">
+        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex flex-col items-center justify-center px-4 py-12 relative">
+            <div className="w-full max-w-md mb-4 flex items-center justify-start">
+                <Link
+                    href="/"
+                    onClick={() => setPage("home")}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-teal-700 font-medium transition-colors"
+                >
+                    <ArrowLeft size={14} /> Back to Home
+                </Link>
+            </div>
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <div className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-teal-glow">
+                    <Link
+                        href="/"
+                        onClick={() => setPage("home")}
+                        className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-teal-glow hover:scale-105 transition-transform"
+                    >
                         <span className="text-white font-bold text-2xl font-display">A</span>
-                    </div>
+                    </Link>
                     <h1 className="text-3xl font-display text-teal-900">Create Your Account</h1>
                     <p className="text-slate-500 mt-2 text-sm">Join Apex Onco Care — begin your care journey</p>
                 </div>
@@ -86,21 +100,24 @@ export function RegisterPage() {
                         <div className="space-y-4">
                             {/* Role Selector */}
                             <div className="flex bg-slate-100 rounded-xl p-1 mb-4">
-                                {([
+                                {[
                                     { value: "patient", label: "Register as Patient" },
                                     { value: "doctor", label: "Register as Doctor" }
-                                ] as const).map(r => (
-                                    <button key={r.value} type="button" onClick={() => setForm({ ...form, role: r.value })}
-                                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${form.role === r.value ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>
+                                ].map(r => (
+                                    <button
+                                        key={r.value}
+                                        type="button"
+                                        onClick={() => setForm({ ...form, role: r.value })}
+                                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${form.role === r.value ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}
+                                    >
                                         {r.label}
                                     </button>
                                 ))}
                             </div>
 
-                            <h2 className="font-semibold text-slate-700 mb-4">Personal Details</h2>
                             <div className="relative">
                                 <User size={16} className="absolute left-3 top-3.5 text-slate-400" />
-                                <input className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
+                                <input type="text" className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
                                     placeholder="Full Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                             </div>
                             <div className="relative">
@@ -111,72 +128,63 @@ export function RegisterPage() {
                             <div className="relative">
                                 <Phone size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                 <input type="tel" className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
-                                    placeholder="Mobile Number" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <input type="date" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                    value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} />
-                                <select className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 text-slate-500"
-                                    value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
-                                    <option value="">Gender</option>
-                                    <option>Male</option><option>Female</option><option>Other</option>
-                                </select>
+                                    placeholder="Phone Number" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
                             </div>
                             <button onClick={() => setStep(2)} className="w-full bg-teal-600 text-white py-3 rounded-xl font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
                                 Continue <ArrowRight size={16} />
                             </button>
                         </div>
                     )}
-
-                    {step === 2 && form.role === "patient" && (
+                    {step === 2 && (
                         <div className="space-y-4">
-                            <h2 className="font-semibold text-slate-700 mb-4">Medical Background</h2>
-                            <input className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                placeholder="City / Location" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
-                            <select className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 text-slate-500"
-                                value={form.primaryConcern} onChange={e => setForm({ ...form, primaryConcern: e.target.value })}>
-                                <option value="">Primary concern / Referral type</option>
-                                <option>New diagnosis</option><option>Second opinion</option><option>Ongoing treatment</option><option>Preventive screening</option>
-                            </select>
-                            <select className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 text-slate-500"
-                                value={form.preferredLanguage} onChange={e => setForm({ ...form, preferredLanguage: e.target.value })}>
-                                <option value="">Preferred Language</option>
-                                <option>English</option><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>Tamil</option>
-                            </select>
-                            <textarea rows={3} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 resize-none"
-                                placeholder="Brief health history (optional — doctor will review)" value={form.healthHistory} onChange={e => setForm({ ...form, healthHistory: e.target.value })} />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-slate-500 mb-1 block">Date of Birth</label>
+                                    <input type="date" className="w-full px-3 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-500 mb-1 block">Gender</label>
+                                    <select className="w-full px-3 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
+                                        <option value="">Select</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
+
+                            {form.role === "doctor" ? (
+                                <>
+                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        placeholder="Specialty (e.g. Medical Oncology)" value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })} />
+                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        placeholder="Experience (e.g. 10 yrs)" value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} />
+                                </>
+                            ) : (
+                                <>
+                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        placeholder="Primary Concern / Cancer Type" value={form.primaryConcern} onChange={e => setForm({ ...form, primaryConcern: e.target.value })} />
+                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                        placeholder="Preferred Language" value={form.preferredLanguage} onChange={e => setForm({ ...form, preferredLanguage: e.target.value })} />
+                                </>
+                            )}
+
                             <div className="flex gap-3">
                                 <button onClick={() => setStep(1)} className="flex-1 border border-slate-200 py-3 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Back</button>
-                                <button onClick={() => setStep(3)} className="flex-1 bg-teal-600 text-white py-3 rounded-xl font-medium hover:bg-teal-700 transition-colors">Continue</button>
+                                <button onClick={() => setStep(3)} className="flex-1 bg-teal-600 text-white py-3 rounded-xl font-medium hover:bg-teal-700 transition-colors">Next</button>
                             </div>
                         </div>
                     )}
-
-                    {step === 2 && form.role === "doctor" && (
-                        <div className="space-y-4">
-                            <h2 className="font-semibold text-slate-700 mb-4">Professional Details</h2>
-                            <select className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 text-slate-500"
-                                value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })}>
-                                <option value="">Specialty</option>
-                                <option>Medical Oncology</option>
-                                <option>Surgical Oncology</option>
-                                <option>Radiation Oncology</option>
-                                <option>Hematology-Oncology</option>
-                            </select>
-                            <input className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                placeholder="Years of Experience (e.g. 15 years)" value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} />
-                            <input className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                placeholder="City / Location" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
-                            <div className="flex gap-3">
-                                <button onClick={() => setStep(1)} className="flex-1 border border-slate-200 py-3 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Back</button>
-                                <button onClick={() => setStep(3)} className="flex-1 bg-teal-600 text-white py-3 rounded-xl font-medium hover:bg-teal-700 transition-colors">Continue</button>
-                            </div>
-                        </div>
-                    )}
-
                     {step === 3 && (
                         <div className="space-y-4">
-                            <h2 className="font-semibold text-slate-700 mb-4">Set Password</h2>
+                            {form.role === "patient" && (
+                                <textarea className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 resize-none h-20"
+                                    placeholder="Brief health history or notes (optional)" value={form.healthHistory} onChange={e => setForm({ ...form, healthHistory: e.target.value })} />
+                            )}
                             <div className="relative">
                                 <Lock size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                 <input type={show ? "text" : "password"} className="w-full pl-9 pr-10 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
@@ -188,10 +196,6 @@ export function RegisterPage() {
                                 <input type="password" className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
                                     placeholder="Confirm Password" value={form.confirm} onChange={e => setForm({ ...form, confirm: e.target.value })} />
                             </div>
-                            <label className="flex items-start gap-3 text-sm text-slate-500 cursor-pointer">
-                                <input type="checkbox" className="mt-0.5 accent-teal-600" />
-                                I agree to the <span className="text-teal-600 underline">Terms of Service</span> and <span className="text-teal-600 underline">Privacy Policy</span>
-                            </label>
                             <div className="flex gap-3">
                                 <button onClick={() => setStep(2)} className="flex-1 border border-slate-200 py-3 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Back</button>
                                 <button onClick={handleSubmit} className="flex-1 bg-teal-600 text-white py-3 rounded-xl font-medium hover:bg-teal-700 transition-colors">
@@ -201,7 +205,12 @@ export function RegisterPage() {
                         </div>
                     )}
                 </div>
-                <p className="text-center text-sm text-slate-500 mt-4">Already have an account? <button onClick={() => setPage("login")} className="text-teal-600 font-medium hover:underline">Login</button></p>
+                <p className="text-center text-sm text-slate-500 mt-4">
+                    Already have an account?{" "}
+                    <Link href="/login" onClick={() => setPage("login")} className="text-teal-600 font-medium hover:underline">
+                        Login
+                    </Link>
+                </p>
             </div>
         </div>
     );
@@ -228,12 +237,25 @@ export function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex flex-col items-center justify-center px-4 relative">
+            <div className="w-full max-w-sm mb-4 flex items-center justify-start">
+                <Link
+                    href="/"
+                    onClick={() => setPage("home")}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-teal-700 font-medium transition-colors"
+                >
+                    <ArrowLeft size={14} /> Back to Home
+                </Link>
+            </div>
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
-                    <div className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-teal-glow">
+                    <Link
+                        href="/"
+                        onClick={() => setPage("home")}
+                        className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-teal-glow hover:scale-105 transition-transform"
+                    >
                         <span className="text-white font-bold text-2xl font-display">A</span>
-                    </div>
+                    </Link>
                     <h1 className="text-3xl font-display text-teal-900">Welcome Back</h1>
                     <p className="text-slate-500 mt-1 text-sm">Sign in to your care dashboard</p>
                 </div>
@@ -273,7 +295,12 @@ export function LoginPage() {
                         Demo mode — click Sign In with any role to explore
                     </div>
                 </div>
-                <p className="text-center text-sm text-slate-500 mt-4">New to Apex? <button onClick={() => setPage("register")} className="text-teal-600 font-medium hover:underline">Register now</button></p>
+                <p className="text-center text-sm text-slate-500 mt-4">
+                    New to Apex?{" "}
+                    <Link href="/register" onClick={() => setPage("register")} className="text-teal-600 font-medium hover:underline">
+                        Register now
+                    </Link>
+                </p>
             </div>
         </div>
     );

@@ -1,11 +1,11 @@
 {
-  "name": "Apex Onco Care",
-  "short_name": "ApexOnco",
+  "name": "Apex",
+  "short_name": "Apex",
   "description": "Integrated Oncology Platform — Expert cancer care with science and compassion.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d9488",
-  "theme_color": "#0f766e",
+  "background_color": "#4B2977",
+  "theme_color": "#7B3A9A",
   "orientation": "portrait-primary",
   "icons": [
     {

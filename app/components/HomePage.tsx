@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useApp } from "../context/AppContext";
 import { ArrowRight, Shield, Clock, Users, Star, ChevronRight, Heart, Activity } from "lucide-react";
 import { testimonials, doctors } from "../data/mockData";
@@ -27,12 +28,20 @@ export default function HomePage() {
                                 From diagnosis to recovery — Apex Onco Care connects patients with expert oncologists, personalised treatment plans, and 24/7 support.
                             </p>
                             <div className="flex flex-wrap gap-3">
-                                <button onClick={() => setPage("register")} className="flex items-center gap-2 bg-white text-teal-800 px-6 py-3 rounded-xl font-semibold hover:bg-teal-50 transition-all shadow-lg">
+                                <Link
+                                    href="/register"
+                                    onClick={() => setPage("register")}
+                                    className="flex items-center gap-2 bg-white text-teal-800 px-6 py-3 rounded-xl font-semibold hover:bg-teal-50 transition-all shadow-lg"
+                                >
                                     Get Started <ArrowRight size={18} />
-                                </button>
-                                <button onClick={() => setPage("services")} className="flex items-center gap-2 border border-teal-400/50 text-white px-6 py-3 rounded-xl font-medium hover:bg-teal-700/50 transition-all">
+                                </Link>
+                                <Link
+                                    href="/services"
+                                    onClick={() => setPage("services")}
+                                    className="flex items-center gap-2 border border-teal-400/50 text-white px-6 py-3 rounded-xl font-medium hover:bg-teal-700/50 transition-all"
+                                >
                                     Our Services <ChevronRight size={18} />
-                                </button>
+                                </Link>
                             </div>
                         </div>
                         <div className="hidden md:block">
@@ -48,86 +57,73 @@ export default function HomePage() {
                                     <div className="space-y-3">
                                         {[
                                             { label: "Treatment Progress", value: "Cycle 2 of 6", progress: 33 },
-                                            { label: "Overall Recovery", value: "Positive", progress: 68 },
-                                        ].map(item => (
-                                            <div key={item.label}>
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <span className="text-teal-200">{item.label}</span>
-                                                    <span className="font-medium">{item.value}</span>
+                                            { label: "Recovery Index", value: "68%", progress: 68 },
+                                            { label: "Vitals Stability", value: "Normal", progress: 85 },
+                                        ].map(({ label, value, progress }) => (
+                                            <div key={label}>
+                                                <div className="flex justify-between text-xs text-teal-200 mb-1">
+                                                    <span>{label}</span>
+                                                    <span className="font-medium text-white">{value}</span>
                                                 </div>
-                                                <div className="h-2 bg-teal-700 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-teal-300 rounded-full" style={{ width: `${item.progress}%` }} />
+                                                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-teal-300 rounded-full" style={{ width: `${progress}%` }} />
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 gap-3 text-center">
-                                        {[["Next Visit", "May 22"], ["Doctor", "Dr. Sharma"], ["Package", "Care Plus"]].map(([k, v]) => (
-                                            <div key={k}>
-                                                <div className="text-xs text-teal-300">{k}</div>
-                                                <div className="text-sm font-semibold">{v}</div>
-                                            </div>
-                                        ))}
+                                    <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center text-xs">
+                                        <span className="text-teal-200">Next: Chemotherapy Session</span>
+                                        <span className="font-semibold">Tomorrow, 10:00 AM</span>
                                     </div>
-                                </div>
-                                <div className="absolute -bottom-4 -right-4 bg-teal-500 rounded-xl px-4 py-2 shadow-lg text-sm font-medium flex items-center gap-2">
-                                    <Heart size={14} /> 1,200+ Patients Treated
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                {/* Wave */}
-                <div className="absolute bottom-0 left-0 right-0">
-                    <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 60L1440 60L1440 0C1200 40 900 60 720 40C540 20 240 0 0 30L0 60Z" fill="white" />
-                    </svg>
-                </div>
             </section>
 
-            {/* Stats */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {[
-                        { value: "1,200+", label: "Patients Treated", icon: Users },
-                        { value: "4.9★", label: "Patient Rating", icon: Star },
-                        { value: "24/7", label: "Doctor Access", icon: Clock },
-                        { value: "100%", label: "Data Security", icon: Shield },
-                    ].map(({ value, label, icon: Icon }) => (
-                        <div key={label} className="text-center p-6 rounded-2xl bg-teal-50 border border-teal-100">
-                            <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                                <Icon size={22} className="text-white" />
+            {/* Quick Stats */}
+            <section className="bg-white border-b border-teal-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                        {[
+                            { value: "15,000+", label: "Patients Treated" },
+                            { value: "94%", label: "Care Satisfaction" },
+                            { value: "45+", label: "Specialist Oncologists" },
+                            { value: "24/7", label: "Care Team Support" },
+                        ].map(({ value, label }) => (
+                            <div key={label} className="p-2">
+                                <div className="text-2xl sm:text-3xl font-display font-semibold text-teal-700">{value}</div>
+                                <div className="text-xs sm:text-sm text-slate-500 mt-1">{label}</div>
                             </div>
-                            <div className="text-2xl font-display font-semibold text-teal-800">{value}</div>
-                            <div className="text-sm text-slate-500 mt-1">{label}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </section>
 
             {/* Why Apex */}
-            <section className="bg-slate-50 py-16">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl sm:text-4xl font-display text-teal-900 mb-3">Why Choose Apex Onco Care?</h2>
-                        <p className="text-slate-500 max-w-xl mx-auto">An integrated approach combining the precision of modern oncology with the wisdom of holistic healing.</p>
-                    </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[
-                            { icon: "🧬", title: "Expert Oncologists", desc: "Board-certified specialists in medical, surgical, and radiation oncology with 15+ years average experience." },
-                            { icon: "💬", title: "Direct Doctor Chat", desc: "Real-time, secure communication with your assigned oncologist — no phone trees, no delays." },
-                            { icon: "🌿", title: "Integrated Healing", desc: "Combining chemotherapy science with nutrition, mindfulness, and integrative therapies for whole-body recovery." },
-                            { icon: "🌐", title: "Multilingual Support", desc: "Available in 8 Indian languages — because your health journey should never be lost in translation." },
-                            { icon: "📊", title: "Treatment Transparency", desc: "Full access to your diagnosis, treatment timeline, lab reports, and imaging in one secure dashboard." },
-                            { icon: "👨‍👩‍👧", title: "Family Involvement", desc: "Dedicated family access to stay informed and involved at every stage of the treatment journey." },
-                        ].map(({ icon, title, desc }) => (
-                            <div key={title} className="bg-white rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-shadow border border-transparent hover:border-teal-100">
-                                <div className="text-3xl mb-4">{icon}</div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{title}</h3>
-                                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+            <section className="py-16 md:py-20 max-w-7xl mx-auto px-4 sm:px-6">
+                <div className="text-center max-w-2xl mx-auto mb-12">
+                    <h2 className="text-3xl sm:text-4xl font-display text-teal-900 mb-3">Comprehensive Cancer Care</h2>
+                    <p className="text-slate-500 text-sm sm:text-base">Integrated technology and clinical excellence guiding you through every step of your journey.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[
+                        { icon: Shield, title: "Multidisciplinary Team", desc: "Surgical, medical, and radiation oncologists collaborate to tailor each patient's care plan." },
+                        { icon: Clock, title: "24/7 Care Chat", desc: "Never feel alone. Real-time access to oncology nurses and your care team for symptoms and queries." },
+                        { icon: Users, title: "Support Communities", desc: "Connect with cancer survivors, join guided support circles, and share journeys with peers." },
+                        { icon: Star, title: "Specialist Matching", desc: "Algorithms match you with top-rated oncologists specializing in your specific cancer type and stage." },
+                        { icon: Heart, title: "Transparent Packages", desc: "Fixed-price comprehensive packages — clear treatment paths with no hidden medical expenses." },
+                        { icon: Activity, title: "Remote Symptom Tracking", desc: "Log daily recovery metrics. Automated alerts notify doctors of potential complications early." },
+                    ].map(({ icon: Icon, title, desc }) => (
+                        <div key={title} className="bg-white rounded-2xl p-6 shadow-card border border-slate-100 hover:shadow-card-hover hover:border-teal-200 transition-all">
+                            <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
+                                <Icon size={24} className="text-teal-600" />
                             </div>
-                        ))}
-                    </div>
+                            <h3 className="font-semibold text-slate-800 mb-2">{title}</h3>
+                            <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+                        </div>
+                    ))}
                 </div>
             </section>
 
@@ -138,7 +134,13 @@ export default function HomePage() {
                         <h2 className="text-3xl font-display text-teal-900">Our Oncologists</h2>
                         <p className="text-slate-500 mt-1">Specialists dedicated to your recovery</p>
                     </div>
-                    <button onClick={() => setPage("services")} className="text-teal-600 text-sm font-medium hover:underline flex items-center gap-1">View All <ChevronRight size={16} /></button>
+                    <Link
+                        href="/services"
+                        onClick={() => setPage("services")}
+                        className="text-teal-600 text-sm font-medium hover:underline flex items-center gap-1"
+                    >
+                        View All <ChevronRight size={16} />
+                    </Link>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {doctors.map(doc => (
@@ -186,9 +188,13 @@ export default function HomePage() {
                         ))}
                     </div>
                     <div className="text-center mt-8">
-                        <button onClick={() => setPage("about")} className="text-teal-300 border border-teal-600 px-6 py-2 rounded-xl hover:bg-teal-700 transition-colors text-sm font-medium">
+                        <Link
+                            href="/about"
+                            onClick={() => setPage("about")}
+                            className="inline-block text-teal-300 border border-teal-600 px-6 py-2 rounded-xl hover:bg-teal-700 transition-colors text-sm font-medium"
+                        >
                             Meet All Our Patients →
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -197,9 +203,13 @@ export default function HomePage() {
             <section className="py-20 text-center max-w-3xl mx-auto px-4">
                 <h2 className="text-3xl sm:text-4xl font-display text-teal-900 mb-4">Begin Your Healing Journey Today</h2>
                 <p className="text-slate-500 mb-8">Register, get assigned a specialist, and start your personalised cancer care plan — all from one secure platform.</p>
-                <button onClick={() => setPage("register")} className="bg-teal-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-teal-700 transition-colors text-lg shadow-teal-glow">
+                <Link
+                    href="/register"
+                    onClick={() => setPage("register")}
+                    className="inline-block bg-teal-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-teal-700 transition-colors text-lg shadow-teal-glow"
+                >
                     Register Now — It's Free
-                </button>
+                </Link>
             </section>
         </div>
     );

@@ -1,7 +1,52 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 type Role = "patient" | "doctor" | "admin" | null;
+
+export const pageToRouteMap: Record<string, string> = {
+    "home": "/",
+    "register": "/register",
+    "login": "/login",
+    "dashboard": "/dashboard",
+    "patient-dashboard": "/patient-dashboard",
+    "doctor-dashboard": "/doctor-dashboard",
+    "admin-dashboard": "/admin-dashboard",
+    "chat": "/chat",
+    "packages": "/packages",
+    "services": "/services",
+    "events": "/events",
+    "events-admin": "/events-admin",
+    "about": "/about",
+    "appointments": "/appointments",
+    "disease-info": "/disease-info",
+    "symptoms": "/symptoms",
+    "patients": "/patients",
+};
+
+export const routeToPageMap: Record<string, string> = {
+    "/": "home",
+    "/register": "register",
+    "/login": "login",
+    "/dashboard": "dashboard",
+    "/patient-dashboard": "patient-dashboard",
+    "/doctor-dashboard": "doctor-dashboard",
+    "/admin-dashboard": "admin-dashboard",
+    "/dashboard/patient": "patient-dashboard",
+    "/dashboard/doctor": "doctor-dashboard",
+    "/dashboard/admin": "admin-dashboard",
+    "/chat": "chat",
+    "/packages": "packages",
+    "/services": "services",
+    "/events": "events",
+    "/events-admin": "events-admin",
+    "/about": "about",
+    "/appointments": "appointments",
+    "/disease-info": "disease-info",
+    "/symptoms": "symptoms",
+    "/patients": "patients",
+};
+
 interface AppContextType {
     role: Role;
     setRole: (r: Role) => void;
@@ -23,14 +68,38 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType>({} as AppContextType);
 
+const getPageFromPath = (path: string): string => {
+    if (routeToPageMap[path]) return routeToPageMap[path];
+    const stripped = path ? path.replace(/^\//, "") : "home";
+    return stripped || "home";
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
+    const router = useRouter();
+    const pathname = usePathname();
+
     const [role, setRole] = useState<Role>(null);
     const [lang, setLang] = useState("en");
-    const [page, setPage] = useState("home");
+    const [page, setPageState] = useState<string>(() => getPageFromPath(pathname || "/"));
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeChatPartner, setActiveChatPartner] = useState<any>(null);
+
+    // Synchronize page state whenever URL pathname changes (e.g. browser back/forward or Link navigation)
+    useEffect(() => {
+        if (pathname) {
+            setPageState(getPageFromPath(pathname));
+        }
+    }, [pathname]);
+
+    const setPage = useCallback((p: string) => {
+        setPageState(p);
+        const targetRoute = pageToRouteMap[p] || (p.startsWith("/") ? p : `/${p}`);
+        if (pathname !== targetRoute) {
+            router.push(targetRoute);
+        }
+    }, [pathname, router]);
 
     const checkUser = async () => {
         try {
@@ -40,8 +109,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(data.user);
                 setIsLoggedIn(true);
                 setRole(data.user.role);
-                if (page === "home" || page === "login" || page === "register") {
-                    setPage(`${data.user.role}-dashboard`);
+                // If user is on auth screens while already logged in, route to their role dashboard
+                if (pathname === "/login" || pathname === "/register") {
+                    router.push(`/${data.user.role}-dashboard`);
                 }
             } else {
                 setCurrentUser(null);
@@ -71,7 +141,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(data.user);
                 setIsLoggedIn(true);
                 setRole(data.user.role);
-                setPage(`${data.user.role}-dashboard`);
+                const target = `/${data.user.role}-dashboard`;
+                setPageState(`${data.user.role}-dashboard`);
+                router.push(target);
                 return { success: true };
             } else {
                 return { success: false, error: data.error || "Login failed" };
@@ -93,7 +165,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(data.user);
                 setIsLoggedIn(true);
                 setRole(data.user.role);
-                setPage(`${data.user.role}-dashboard`);
+                const target = `/${data.user.role}-dashboard`;
+                setPageState(`${data.user.role}-dashboard`);
+                router.push(target);
                 return { success: true };
             } else {
                 return { success: false, error: data.error || "Registration failed" };
@@ -112,7 +186,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(null);
         setIsLoggedIn(false);
         setRole(null);
-        setPage("home");
+        setPageState("home");
+        router.push("/");
     };
 
     return (

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useApp } from "../context/AppContext";
 import { patientProfile } from "../data/mockData";
 import { Calendar, MessageSquare, Activity, FileText, AlertCircle, ChevronRight, TrendingUp, Heart, Clock } from "lucide-react";
@@ -59,34 +60,37 @@ export default function PatientDashboard() {
                     });
                     return { dayDate, time };
                 }
-            } catch (e) {}
+            } catch {
+                // fall through
+            }
         }
-        if (s.date && s.date.includes("•")) {
-            const parts = s.date.split("•").map((p: string) => p.trim());
-            return { dayDate: parts[0], time: parts[1] || "" };
-        }
-        return { dayDate: s.date || "Recorded", time: s.time || "" };
+        return {
+            dayDate: s.date || "Today",
+            time: s.time || "Recent",
+        };
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            {/* Header banner */}
-            <div className="bg-gradient-to-r from-teal-800 to-teal-600 text-white px-4 sm:px-6 py-8">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold">SS</div>
-                            <div>
-                                <h1 className="text-2xl font-display font-semibold">{p.name}</h1>
-                                <div className="text-teal-200 text-sm flex flex-wrap gap-3 mt-1">
-                                    <span>ID: {p.id}</span>
-                                    <span>•</span>
-                                    <span>{p.disease}</span>
-                                    <span>•</span>
-                                    <span className="bg-white/20 px-2 py-0.5 rounded-full">{p.status}</span>
-                                </div>
+        <div>
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-teal-800 to-teal-700 text-white py-8 px-4 sm:px-6">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold">
+                            {(currentUser?.name || p.name).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-display font-semibold">{currentUser?.name || p.name}</h1>
+                            <div className="text-teal-200 text-sm flex flex-wrap gap-3 mt-1">
+                                <span>ID: {p.id}</span>
+                                <span>•</span>
+                                <span>{p.disease}</span>
+                                <span>•</span>
+                                <span className="bg-white/20 px-2 py-0.5 rounded-full">{p.status}</span>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
                         <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm">
                             <div className="text-teal-200 text-xs mb-0.5">Next Appointment</div>
                             <div className="font-semibold">{p.nextAppointment}</div>
@@ -99,18 +103,22 @@ export default function PatientDashboard() {
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {[
-                        { icon: MessageSquare, label: "Chat Doctor", page: "chat", color: "teal" },
-                        { icon: Calendar, label: "Book Appointment", page: "appointments", color: "blue" },
-                        { icon: Activity, label: "Log Symptom", page: "symptoms", color: "emerald" },
-                        { icon: FileText, label: "My Care Plan", page: "disease-info", color: "amber" },
-                    ].map(({ icon: Icon, label, page, color }) => (
-                        <button key={label} onClick={() => setPage(page)}
-                            className="bg-white rounded-2xl p-4 shadow-card border border-slate-100 hover:shadow-card-hover hover:border-teal-100 transition-all text-left">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-${color}-50`}>
+                        { icon: MessageSquare, label: "Chat Doctor", page: "chat", href: "/chat", color: "teal" },
+                        { icon: Calendar, label: "Book Appointment", page: "appointments", href: "/appointments", color: "blue" },
+                        { icon: Activity, label: "Log Symptom", page: "symptoms", href: "/symptoms", color: "emerald" },
+                        { icon: FileText, label: "My Care Plan", page: "disease-info", href: "/disease-info", color: "amber" },
+                    ].map(({ icon: Icon, label, page, href, color }) => (
+                        <Link
+                            key={label}
+                            href={href}
+                            onClick={() => setPage(page)}
+                            className="bg-white rounded-2xl p-4 shadow-card border border-slate-100 hover:shadow-card-hover hover:border-teal-200 transition-all text-left block group"
+                        >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-${color}-50 group-hover:scale-105 transition-transform`}>
                                 <Icon size={20} className={`text-${color}-600`} />
                             </div>
-                            <div className="text-sm font-semibold text-slate-700">{label}</div>
-                        </button>
+                            <div className="text-sm font-semibold text-slate-700 group-hover:text-teal-700 transition-colors">{label}</div>
+                        </Link>
                     ))}
                 </div>
 
@@ -119,7 +127,13 @@ export default function PatientDashboard() {
                     <div className="lg:col-span-2 bg-white rounded-2xl shadow-card border border-slate-100 p-6">
                         <div className="flex items-center justify-between mb-5">
                             <h3 className="font-semibold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-teal-600" /> Treatment Progress</h3>
-                            <button onClick={() => setPage("disease-info")} className="text-xs text-teal-600 hover:underline flex items-center gap-1">Full Plan <ChevronRight size={14} /></button>
+                            <Link
+                                href="/disease-info"
+                                onClick={() => setPage("disease-info")}
+                                className="text-xs text-teal-600 hover:underline flex items-center gap-1"
+                            >
+                                Full Plan <ChevronRight size={14} />
+                            </Link>
                         </div>
                         <div className="space-y-4">
                             {[
@@ -175,7 +189,13 @@ export default function PatientDashboard() {
                         <div className="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="font-semibold text-slate-700 flex items-center gap-2"><AlertCircle size={16} className="text-amber-500" /> Recent Symptoms</h3>
-                                <button onClick={() => setPage("symptoms")} className="text-xs text-teal-600 hover:underline">View all</button>
+                                <Link
+                                    href="/symptoms"
+                                    onClick={() => setPage("symptoms")}
+                                    className="text-xs text-teal-600 hover:underline"
+                                >
+                                    View all
+                                </Link>
                             </div>
                             <div className="space-y-2">
                                 {displaySymptoms.slice(0, 5).map((s: any, i: number) => {
@@ -213,9 +233,13 @@ export default function PatientDashboard() {
                         <div className="text-xl font-display font-semibold">{p.package}</div>
                         <div className="text-teal-300 text-sm mt-1">Active since {p.since}</div>
                     </div>
-                    <button onClick={() => setPage("packages")} className="bg-white text-teal-700 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-teal-50 transition-colors">
+                    <Link
+                        href="/packages"
+                        onClick={() => setPage("packages")}
+                        className="bg-white text-teal-700 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-teal-50 transition-colors"
+                    >
                         Upgrade Package →
-                    </button>
+                    </Link>
                 </div>
             </div>
         </div>
