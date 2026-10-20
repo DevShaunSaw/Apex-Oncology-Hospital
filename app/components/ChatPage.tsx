@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useApp } from "../context/AppContext";
-import { Send, Paperclip, Phone, Video, MoreVertical, Calendar, FileText, ChevronRight, Image as ImageIcon, CheckCircle2, Clock, X, AlertCircle } from "lucide-react";
+import { Send, Paperclip, Phone, Video, MoreVertical, Calendar, FileText, ChevronRight, Image as ImageIcon, CheckCircle2, Clock, X, AlertCircle, Bell, Film, Cloud } from "lucide-react";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 
 const HOURLY_SLOTS = [
     "09:00 AM",
@@ -25,6 +26,7 @@ const getISODateString = (d: Date) => {
 
 export default function ChatPage() {
     const { currentUser, role, activeChatPartner, setActiveChatPartner } = useApp();
+    const { isSubscribed, subscribeToPush } = usePushNotifications();
     const [conversations, setConversations] = useState<any[]>([]);
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState("");
@@ -44,6 +46,7 @@ export default function ChatPage() {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const [showNewChatDropdown, setShowNewChatDropdown] = useState(false);
@@ -267,6 +270,20 @@ export default function ChatPage() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !activeChatPartner) return;
+        if (e.target) e.target.value = "";
+
+        const allowedExtensions = [
+            "jpg", "jpeg", "png", "webp", "gif", "svg",
+            "mp4", "webm", "mov", "m4v",
+            "pdf",
+            "doc", "docx", "txt", "rtf", "csv", "xls", "xlsx", "ppt", "pptx"
+        ];
+
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        if (!allowedExtensions.includes(ext) && !file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+            alert("Unsupported file format. Only image formats (JPG, PNG, WEBP, GIF, SVG), short videos (MP4, WEBM, MOV), PDFs, and documents (DOC, DOCX, TXT, CSV, XLS, PPT) are allowed.");
+            return;
+        }
 
         setUploading(true);
         const formData = new FormData();
@@ -280,19 +297,23 @@ export default function ChatPage() {
             const uploadData = await res.json();
 
             if (res.ok && uploadData.fileUrl) {
-                const isImage = ["PNG", "JPG", "JPEG", "WEBP", "GIF"].includes(uploadData.fileType?.toUpperCase());
-                const validatedType = isImage ? "image" : "document";
+                const isImage = uploadData.category === "image" || ["PNG", "JPG", "JPEG", "WEBP", "GIF", "SVG"].includes(uploadData.fileType?.toUpperCase());
+                const isVideo = uploadData.category === "video" || ["MP4", "WEBM", "MOV", "M4V"].includes(uploadData.fileType?.toUpperCase());
+                const validatedType = isImage ? "image" : isVideo ? "video" : "document";
 
                 const msgRes = await fetch("/api/chat/messages", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         receiverId: activeChatPartner._id,
-                        message: `Shared file: ${uploadData.fileName}`,
+                        message: isImage ? `Shared image: ${uploadData.fileName}` : isVideo ? `Shared video: ${uploadData.fileName}` : `Shared file: ${uploadData.fileName}`,
                         type: validatedType,
                         fileName: uploadData.fileName,
                         fileUrl: uploadData.fileUrl,
                         fileType: uploadData.fileType,
+                        objectKey: uploadData.objectKey,
+                        fileSize: uploadData.fileSize,
+                        mimeType: uploadData.mimeType,
                     }),
                 });
 
@@ -305,6 +326,7 @@ export default function ChatPage() {
             }
         } catch (error) {
             console.error("Upload error:", error);
+            alert("An error occurred while uploading file to cloud storage.");
         } finally {
             setUploading(false);
         }
@@ -389,8 +411,28 @@ export default function ChatPage() {
                     </div>
                     {activeChatPartner && (
                         <div className="flex items-center gap-2">
+                            {/* Push notification status / quick-optin */}
+                            {!isSubscribed ? (
+                                <button
+                                    onClick={subscribeToPush}
+                                    title="Click to receive instant push alerts when you receive messages"
+                                    className="hidden sm:flex items-center gap-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1.5 rounded-xl font-semibold transition-colors cursor-pointer"
+                                >
+                                    <Bell size={13} className="text-amber-600" />
+                                    <span>Get Message Alerts</span>
+                                </button>
+                            ) : (
+                                <span
+                                    title="Push notifications active on this device"
+                                    className="hidden sm:flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 font-semibold"
+                                >
+                                    <Bell size={12} className="text-emerald-600" />
+                                    <span>Alerts Active</span>
+                                </span>
+                            )}
+
                             {role === "doctor" && (
-                                <button onClick={() => setShowSlots(!showSlots)} className="flex items-center gap-1.5 text-sm text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition-colors font-medium">
+                                <button onClick={() => setShowSlots(!showSlots)} className="flex items-center gap-1.5 text-sm text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition-colors font-medium cursor-pointer">
                                     <Calendar size={14} className="text-teal-600" /> Book Appointment
                                 </button>
                             )}
@@ -556,8 +598,9 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                     {messages.map((msg) => {
                         const isMe = msg.sender === currentUser?._id || msg.sender?.toString() === currentUser?._id;
-                        // Map schema enum values into a shared UI layout identifier
-                        const isFileMessage = msg.type === "document" || msg.type === "image";
+                        const isVideo = msg.type === "video" || ["MP4", "WEBM", "MOV", "M4V"].includes(msg.fileType?.toUpperCase());
+                        const isImage = msg.type === "image" || ["PNG", "JPG", "JPEG", "WEBP", "GIF", "SVG"].includes(msg.fileType?.toUpperCase());
+                        const isFileMessage = msg.type === "document" || isImage || isVideo;
 
                         return (
                             <div key={msg._id || msg.id}>
@@ -583,22 +626,47 @@ export default function ChatPage() {
                                                 }`}>
                                                 {isFileMessage ? (
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center"><FileText size={18} className="text-teal-600" /></div>
-                                                        <div>
-                                                            <div className="font-medium text-slate-700 text-sm truncate max-w-[150px]">{msg.fileName || "Uploaded File"}</div>
-                                                            <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 flex items-center gap-1 mt-0.5 hover:underline">
-                                                                {msg.fileType || "View"} <ChevronRight size={12} /> View / Download
-                                                            </a>
+                                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                                            isVideo ? "bg-purple-100 text-purple-600" : isImage ? "bg-teal-100 text-teal-600" : "bg-indigo-100 text-indigo-600"
+                                                        }`}>
+                                                            {isVideo ? <Film size={18} /> : isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-medium text-slate-700 text-sm truncate max-w-[170px]">{msg.fileName || "Attachment"}</div>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 flex items-center gap-1 hover:underline font-semibold">
+                                                                    {msg.fileType || "File"} <ChevronRight size={12} /> View
+                                                                </a>
+                                                                <span className="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200 flex items-center gap-0.5">
+                                                                    <Cloud size={10} /> GCP
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     msg.message
                                                 )}
                                             </div>
+
+                                            {/* Show Video Player if attachment is video */}
+                                            {isVideo && msg.fileUrl && (
+                                                <div className="mt-1 border border-slate-200 rounded-xl overflow-hidden max-w-[280px] sm:max-w-[320px] shadow-sm bg-black p-1">
+                                                    <video
+                                                        controls
+                                                        playsInline
+                                                        preload="metadata"
+                                                        src={msg.fileUrl}
+                                                        className="w-full max-h-[200px] rounded-lg object-contain bg-black"
+                                                    >
+                                                        Your browser does not support HTML5 video.
+                                                    </video>
+                                                </div>
+                                            )}
+
                                             {/* Show Image preview if message type is explicit or contains image file type mapping */}
-                                            {(msg.type === "image" || ["PNG", "JPG", "JPEG", "WEBP", "GIF"].includes(msg.fileType?.toUpperCase())) && msg.fileUrl && (
-                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden max-w-[200px] shadow-sm bg-white p-1">
-                                                    <img src={msg.fileUrl} alt={msg.fileName || "Chat Upload"} className="object-cover w-full h-auto max-h-[150px] rounded-lg" />
+                                            {isImage && msg.fileUrl && (
+                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden max-w-[220px] shadow-sm bg-white p-1">
+                                                    <img src={msg.fileUrl} alt={msg.fileName || "Chat Upload"} className="object-cover w-full h-auto max-h-[170px] rounded-lg" />
                                                 </div>
                                             )}
                                             <span className="text-xs text-slate-400 mx-1">{msg.time}</span>
@@ -617,17 +685,58 @@ export default function ChatPage() {
                 {/* Input */}
                 {activeChatPartner && (
                     <div className="bg-white border-t border-slate-100 px-4 py-3">
+                        {uploading && (
+                            <div className="flex items-center gap-2 mb-2 text-xs text-teal-700 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200 animate-pulse">
+                                <Cloud size={14} className="text-teal-600 animate-bounce" />
+                                <span className="font-medium">Uploading attachment to Google Cloud Storage bucket...</span>
+                            </div>
+                        )}
                         <div className="flex items-end gap-2">
-                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
-                            <input type="file" ref={imageInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                accept=".pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx,.ppt,.pptx,application/pdf"
+                            />
+                            <input
+                                type="file"
+                                ref={imageInputRef}
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,.jpg,.jpeg,.png,.webp,.gif,.svg"
+                            />
+                            <input
+                                type="file"
+                                ref={videoInputRef}
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"
+                            />
 
-                            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                                className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`} title="Upload PDF or Document">
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`}
+                                title="Upload PDF or Document (.pdf, .doc, .docx, .txt, .csv, etc.)"
+                            >
                                 <Paperclip size={18} />
                             </button>
-                            <button onClick={() => imageInputRef.current?.click()} disabled={uploading}
-                                className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`} title="Upload Image">
+                            <button
+                                onClick={() => imageInputRef.current?.click()}
+                                disabled={uploading}
+                                className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`}
+                                title="Upload Image (.jpg, .png, .webp, .gif, .svg)"
+                            >
                                 <ImageIcon size={18} />
+                            </button>
+                            <button
+                                onClick={() => videoInputRef.current?.click()}
+                                disabled={uploading}
+                                className={`p-2.5 text-slate-400 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-colors ${uploading ? "opacity-50" : ""}`}
+                                title="Upload Short Video (.mp4, .webm, .mov)"
+                            >
+                                <Film size={18} />
                             </button>
 
                             <textarea

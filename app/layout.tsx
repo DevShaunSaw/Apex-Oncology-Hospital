@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppProvider } from "./context/AppContext";
 import Navbar from "./components/Navbar";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import NotificationPromptBanner from "./components/NotificationPromptBanner";
 
 export const metadata: Metadata = {
   title: "Apex — Integrated Oncology Platform",
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <PWAInstallPrompt />
+          <NotificationPromptBanner />
         </AppProvider>
       </body>
     </html>

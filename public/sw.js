@@ -1,4 +1,4 @@
-const CACHE_NAME = "apex-onco-v1";
+const CACHE_NAME = "apex-onco-v2";
 
 const PRECACHE_ASSETS = [
   "/",
@@ -71,6 +71,76 @@ self.addEventListener("fetch", (event) => {
             return caches.match("/");
           }
         });
+      })
+  );
+});
+
+// ==========================================
+// Web Push Notifications
+// ==========================================
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = {
+        title: "Apex Onco Care",
+        body: event.data.text(),
+      };
+    }
+  }
+
+  const title = data.title || "Apex Onco Care";
+  const options = {
+    body: data.body || "You have a new update.",
+    icon: data.icon || "/icons/icon-192x192.png",
+    badge: data.badge || "/icons/icon-192x192.png",
+    image: data.image || undefined,
+    tag: data.tag || "apex-notification",
+    renotify: true,
+    requireInteraction: false,
+    data: {
+      url: data.url || (data.data && data.data.url) || "/",
+      ...data.data,
+    },
+    actions: [
+      { action: "open", title: "Open" },
+      { action: "dismiss", title: "Dismiss" },
+    ],
+    vibrate: [200, 100, 200],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "dismiss") {
+    return;
+  }
+
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Look for an existing client that is already open to that URL or domain
+        for (const client of clientList) {
+          if (client.url && "focus" in client) {
+            if ("navigate" in client) {
+              client.navigate(targetUrl);
+            }
+            return client.focus();
+          }
+        }
+        // If no window is open, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
       })
   );
 });

@@ -17,8 +17,6 @@ export function RegisterPage() {
         password: "",
         confirm: "",
         role: "patient",
-        specialty: "",
-        experience: "",
         primaryConcern: "",
         preferredLanguage: "",
         healthHistory: ""
@@ -44,12 +42,10 @@ export function RegisterPage() {
             gender: form.gender,
             city: form.city,
             password: form.password,
-            role: form.role,
-            specialty: form.role === "doctor" ? form.specialty : undefined,
-            experience: form.role === "doctor" ? form.experience : undefined,
-            primaryConcern: form.role === "patient" ? form.primaryConcern : undefined,
-            preferredLanguage: form.role === "patient" ? form.preferredLanguage : undefined,
-            healthHistory: form.role === "patient" ? form.healthHistory : undefined,
+            role: "patient",
+            primaryConcern: form.primaryConcern,
+            preferredLanguage: form.preferredLanguage,
+            healthHistory: form.healthHistory,
         });
         if (!res.success) {
             setError(res.error || "Registration failed.");
@@ -98,23 +94,6 @@ export function RegisterPage() {
                     )}
                     {step === 1 && (
                         <div className="space-y-4">
-                            {/* Role Selector */}
-                            <div className="flex bg-slate-100 rounded-xl p-1 mb-4">
-                                {[
-                                    { value: "patient", label: "Register as Patient" },
-                                    { value: "doctor", label: "Register as Doctor" }
-                                ].map(r => (
-                                    <button
-                                        key={r.value}
-                                        type="button"
-                                        onClick={() => setForm({ ...form, role: r.value })}
-                                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${form.role === r.value ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}
-                                    >
-                                        {r.label}
-                                    </button>
-                                ))}
-                            </div>
-
                             <div className="relative">
                                 <User size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                 <input type="text" className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
@@ -157,21 +136,10 @@ export function RegisterPage() {
                             <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
                                 placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
 
-                            {form.role === "doctor" ? (
-                                <>
-                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                        placeholder="Specialty (e.g. Medical Oncology)" value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })} />
-                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                        placeholder="Experience (e.g. 10 yrs)" value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} />
-                                </>
-                            ) : (
-                                <>
-                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                        placeholder="Primary Concern / Cancer Type" value={form.primaryConcern} onChange={e => setForm({ ...form, primaryConcern: e.target.value })} />
-                                    <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
-                                        placeholder="Preferred Language" value={form.preferredLanguage} onChange={e => setForm({ ...form, preferredLanguage: e.target.value })} />
-                                </>
-                            )}
+                            <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                placeholder="Primary Concern / Cancer Type" value={form.primaryConcern} onChange={e => setForm({ ...form, primaryConcern: e.target.value })} />
+                            <input type="text" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"
+                                placeholder="Preferred Language" value={form.preferredLanguage} onChange={e => setForm({ ...form, preferredLanguage: e.target.value })} />
 
                             <div className="flex gap-3">
                                 <button onClick={() => setStep(1)} className="flex-1 border border-slate-200 py-3 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Back</button>
@@ -181,10 +149,8 @@ export function RegisterPage() {
                     )}
                     {step === 3 && (
                         <div className="space-y-4">
-                            {form.role === "patient" && (
-                                <textarea className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 resize-none h-20"
-                                    placeholder="Brief health history or notes (optional)" value={form.healthHistory} onChange={e => setForm({ ...form, healthHistory: e.target.value })} />
-                            )}
+                            <textarea className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 resize-none h-20"
+                                placeholder="Brief health history or notes (optional)" value={form.healthHistory} onChange={e => setForm({ ...form, healthHistory: e.target.value })} />
                             <div className="relative">
                                 <Lock size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                 <input type={show ? "text" : "password"} className="w-full pl-9 pr-10 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400"

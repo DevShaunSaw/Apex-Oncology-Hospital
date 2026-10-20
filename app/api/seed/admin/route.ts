@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 
-export async function GET() {
+export async function POST() {
     try {
         await connectToDatabase();
 
@@ -18,10 +18,10 @@ export async function GET() {
         }
 
         // Create the admin user
-        const hashedPassword = await bcrypt.hash("admin123", 10);
+        const hashedPassword = await bcrypt.hash("Shaunak@123", 10);
         const adminUser = await User.create({
-            name: "System Admin",
-            email: "admin@apex.com",
+            name: "Shaunak Sawant",
+            email: "shaunakprashant@gmail.com",
             password: hashedPassword,
             role: "admin",
         });

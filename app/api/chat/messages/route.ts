@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { connectToDatabase } from "@/lib/mongodb";
 import Message from "@/models/Message";
+import User from "@/models/User";
+import { sendPushNotificationToUser } from "@/lib/pushNotifications";
 
 export async function GET(req: Request) {
   try {
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback_secret") as { id: string };
     const myId = decoded.id;
 
-    const { receiverId, message, type, fileName, fileUrl, fileType } = await req.json();
+    const { receiverId, message, type, fileName, fileUrl, fileType, objectKey, fileSize, mimeType } = await req.json();
 
     if (!receiverId) {
       return NextResponse.json({ error: "Missing receiverId" }, { status: 400 });
@@ -62,15 +64,6 @@ export async function POST(req: Request) {
       minute: "2-digit",
     });
 
-    console.log({
-      receiverId,
-      message,
-      type,
-      fileName,
-      fileUrl,
-      fileType,
-    });
-
     const newMsg = await Message.create({
       sender: myId,
       receiver: receiverId,
@@ -79,8 +72,33 @@ export async function POST(req: Request) {
       fileName,
       fileUrl,
       fileType,
+      objectKey,
+      fileSize,
+      mimeType,
       time: formattedTime,
     });
+
+    // Send Web Push notification to receiver if subscribed
+    try {
+      const senderUser = await User.findById(myId).select("name");
+      const senderName = senderUser?.name || "Apex Onco Care";
+      let previewText = message || "";
+      if (type === "image") previewText = "📷 Sent an image";
+      else if (type === "video") previewText = "🎥 Sent a video";
+      else if (type === "audio") previewText = "🎤 Sent an audio message";
+      else if (type === "document") previewText = `📄 Sent a file: ${fileName || "Document"}`;
+      else if (type === "appointment") previewText = `🗓️ ${message || "Scheduled an appointment"}`;
+
+      sendPushNotificationToUser(receiverId, {
+        title: senderName,
+        body: previewText.length > 120 ? previewText.slice(0, 117) + "..." : previewText,
+        url: `/chat?userId=${myId}`,
+        tag: `chat-${myId}`,
+        data: { senderId: myId, messageId: newMsg._id.toString() },
+      }).catch((pushErr) => console.error("[WebPush Chat Trigger] Error:", pushErr));
+    } catch (pushErr) {
+      console.error("[WebPush Chat Trigger] Failed to send push:", pushErr);
+    }
 
     return NextResponse.json({ message: newMsg }, { status: 201 });
   } catch (error) {

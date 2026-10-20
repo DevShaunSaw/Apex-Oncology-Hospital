@@ -5,6 +5,7 @@ import Appointment from "@/models/Appointment";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { appointments as mockAppointments } from "@/app/data/mockData";
+import { checkAndSendAppointmentReminders } from "@/lib/pushNotifications";
 
 export async function GET(req: NextRequest) {
     try {
@@ -74,6 +75,11 @@ export async function GET(req: NextRequest) {
             
             return obj;
         });
+
+        // Trigger appointment reminder evaluations in background
+        checkAndSendAppointmentReminders().catch((remErr) =>
+            console.error("[APPOINTMENTS] Background reminders check error:", remErr)
+        );
 
         return NextResponse.json({ success: true, appointments: formattedAppointments });
     } catch (err: any) {
@@ -154,6 +160,11 @@ export async function POST(req: NextRequest) {
         await User.findByIdAndUpdate(finalPatientId, {
             nextAppointment: nextApptStr,
         });
+
+        // Trigger reminder check for newly scheduled appointment
+        checkAndSendAppointmentReminders().catch((remErr) =>
+            console.error("[APPOINTMENTS] Background reminders check error:", remErr)
+        );
 
         return NextResponse.json({ success: true, appointment });
     } catch (err: any) {

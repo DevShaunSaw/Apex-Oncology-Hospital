@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useApp } from "../context/AppContext";
 import { languages } from "../data/mockData";
 import { Menu, X, Globe, Bell, ChevronDown, LogOut } from "lucide-react";
+import NotificationCenter from "./NotificationCenter";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 
 interface NavItem {
     label: string;
@@ -47,9 +49,11 @@ const dashLinks: Record<string, NavItem[]> = {
 
 export default function Navbar() {
     const { role, page, setPage, lang, setLang, isLoggedIn, logout } = useApp();
+    const { isSubscribed } = usePushNotifications();
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
     const [langOpen, setLangOpen] = useState(false);
+    const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
 
     // Hide Navbar on authentication pages
     if (pathname === "/login" || pathname === "/register") {
@@ -69,6 +73,7 @@ export default function Navbar() {
     };
 
     return (
+        <>
         <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-teal-100 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16">
@@ -139,11 +144,19 @@ export default function Navbar() {
 
                         {isLoggedIn && (
                             <button
-                                aria-label="Notifications"
-                                className="relative p-2 rounded-lg text-slate-500 hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                                onClick={() => setNotificationCenterOpen(true)}
+                                aria-label="Push Notifications"
+                                title="Push Notification Settings & Reminders"
+                                className="relative p-2 rounded-lg text-slate-500 hover:bg-teal-50 hover:text-teal-700 transition-colors cursor-pointer"
                             >
                                 <Bell size={17} />
-                                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-teal-500 rounded-full"></span>
+                                <span
+                                    className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${
+                                        isSubscribed
+                                            ? "bg-emerald-500 ring-2 ring-white"
+                                            : "bg-amber-400 animate-pulse"
+                                    }`}
+                                ></span>
                             </button>
                         )}
 
@@ -218,5 +231,11 @@ export default function Navbar() {
                 )}
             </div>
         </nav>
+
+        <NotificationCenter
+            isOpen={notificationCenterOpen}
+            onClose={() => setNotificationCenterOpen(false)}
+        />
+    </>
     );
 }

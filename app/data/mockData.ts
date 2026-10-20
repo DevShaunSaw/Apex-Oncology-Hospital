@@ -116,12 +116,7 @@ export const patientProfile = {
 export const languages = [
     { code: "en", label: "English" },
     { code: "hi", label: "हिंदी" },
-    { code: "mr", label: "मराठी" },
-    { code: "gu", label: "ગુજરાતી" },
-    { code: "ta", label: "தமிழ்" },
-    { code: "te", label: "తెలుగు" },
-    { code: "ml", label: "മലയാളം" },
-    { code: "kn", label: "ಕನ್ನಡ" },
+    { code: "mr", label: "मराठी" }
 ];
 
 export const doctorPatients = [

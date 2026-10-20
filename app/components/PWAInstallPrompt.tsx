@@ -12,13 +12,9 @@ export default function PWAInstallPrompt() {
   const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
-    // Check if dismissed previously during this session
-    const dismissed = sessionStorage.getItem("pwa_prompt_dismissed");
-    if (dismissed) return;
-
-    // Register service worker
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+    // Register service worker unconditionally for push notifications & PWA
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const registerSW = () => {
         navigator.serviceWorker
           .register("/sw.js")
           .then((registration) => {
@@ -27,8 +23,21 @@ export default function PWAInstallPrompt() {
           .catch((error) => {
             console.error("Service Worker registration failed:", error);
           });
-      });
+      };
+
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW, { once: true });
+      }
     }
+
+    // Check if the PWA install prompt has already been shown or dismissed on this browser instance
+    const alreadyShown =
+      localStorage.getItem("pwa_install_prompt_shown") ||
+      localStorage.getItem("pwa_prompt_dismissed") ||
+      sessionStorage.getItem("pwa_prompt_dismissed");
+    if (alreadyShown) return;
 
     // Check if already in standalone mode
     const isStandalone =
@@ -39,6 +48,19 @@ export default function PWAInstallPrompt() {
       setIsInstalled(true);
       return;
     }
+
+    // Helper to display banner exactly once and record to localStorage
+    const triggerBannerOnce = (delay: number) => {
+      setTimeout(() => {
+        if (
+          !localStorage.getItem("pwa_install_prompt_shown") &&
+          !localStorage.getItem("pwa_prompt_dismissed")
+        ) {
+          localStorage.setItem("pwa_install_prompt_shown", "true");
+          setShowBanner(true);
+        }
+      }, delay);
+    };
 
     // Detect iOS devices (iPhone, iPad, iPod)
     const ua = window.navigator.userAgent;
@@ -52,13 +74,13 @@ export default function PWAInstallPrompt() {
 
     if (isAppleMobile) {
       setIsIOS(true);
-      setTimeout(() => setShowBanner(true), 2000);
+      triggerBannerOnce(2000);
       return;
     }
 
     if (isSafari && /Macintosh/.test(ua)) {
       setIsSafariDesktop(true);
-      setTimeout(() => setShowBanner(true), 2000);
+      triggerBannerOnce(2000);
       return;
     }
 
@@ -66,7 +88,7 @@ export default function PWAInstallPrompt() {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setTimeout(() => setShowBanner(true), 1500);
+      triggerBannerOnce(1500);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -75,6 +97,8 @@ export default function PWAInstallPrompt() {
       setIsInstalled(true);
       setShowBanner(false);
       setDeferredPrompt(null);
+      localStorage.setItem("pwa_install_prompt_shown", "true");
+      localStorage.setItem("pwa_prompt_dismissed", "true");
     });
 
     return () => {
@@ -84,6 +108,8 @@ export default function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setShowBanner(false);
+    localStorage.setItem("pwa_prompt_dismissed", "true");
+    localStorage.setItem("pwa_install_prompt_shown", "true");
     sessionStorage.setItem("pwa_prompt_dismissed", "true");
   };
 
@@ -98,8 +124,17 @@ export default function PWAInstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
       setShowBanner(false);
+      localStorage.setItem("pwa_prompt_dismissed", "true");
+      localStorage.setItem("pwa_install_prompt_shown", "true");
     }
     setDeferredPrompt(null);
+  };
+
+  const handleCloseInstructions = () => {
+    setShowInstructions(false);
+    setShowBanner(false);
+    localStorage.setItem("pwa_prompt_dismissed", "true");
+    localStorage.setItem("pwa_install_prompt_shown", "true");
   };
 
   if (isInstalled || !showBanner) return null;
@@ -121,7 +156,7 @@ export default function PWAInstallPrompt() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleInstallClick}
-              className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+              className="bg-teal-500 hover:bg-teal-400 text-slate-100 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm"
             >
               {isIOS || isSafariDesktop ? "How to" : "Install"}
             </button>
@@ -141,7 +176,7 @@ export default function PWAInstallPrompt() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-sm w-full p-5 text-white shadow-2xl relative">
             <button
-              onClick={() => setShowInstructions(false)}
+              onClick={handleCloseInstructions}
               className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
             >
               <X size={18} />
@@ -189,7 +224,7 @@ export default function PWAInstallPrompt() {
             )}
 
             <button
-              onClick={() => setShowInstructions(false)}
+              onClick={handleCloseInstructions}
               className="mt-5 w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold text-xs py-2.5 rounded-xl transition-colors"
             >
               Got it

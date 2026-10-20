@@ -2,6 +2,19 @@
 
 @import "tailwindcss";
 
+@theme {
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-full: 0px;
+  --radius: 0px;
+}
+
 /* =========================================
    THEME VARIABLES
 ========================================= */
@@ -60,6 +73,13 @@
 
 * {
   box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
 }
 
 html {
@@ -141,6 +161,19 @@ h3 {
 /* =========================================
    ANIMATIONS
 ========================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out both;
+}
 
 @keyframes fadeInUp {
   from {

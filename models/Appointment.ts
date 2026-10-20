@@ -38,6 +38,20 @@ const AppointmentSchema = new mongoose.Schema(
     treatmentPlan: {
       type: String,
     },
+    reminded24h: {
+      type: Boolean,
+      default: false,
+    },
+    reminded1h: {
+      type: Boolean,
+      default: false,
+    },
+    reminded24hAt: {
+      type: Date,
+    },
+    reminded1hAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

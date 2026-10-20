@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useApp } from "../context/AppContext";
 import { Calendar, Clock, Video, MapPin, Check, ChevronRight, MessageSquare, CheckCircle2, AlertCircle, X, User } from "lucide-react";
+import AppointmentNotificationStatus from "./AppointmentNotificationStatus";
 
 const HOURLY_SLOTS = [
     "09:00 AM",
@@ -176,6 +177,8 @@ export default function AppointmentsPage() {
                 </div>
 
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+                    <AppointmentNotificationStatus />
+
                     {/* Book New Appointment (Doctor Side) */}
                     <div className="bg-white rounded-2xl shadow-card border border-slate-100 p-6">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-5">
@@ -377,6 +380,8 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+                <AppointmentNotificationStatus />
+
                 <div className="bg-white rounded-2xl shadow-card border border-slate-100 p-6 mb-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                         <div>
