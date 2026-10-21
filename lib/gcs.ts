@@ -1,24 +1,35 @@
-import { Storage } from "@google-cloud/storage";
+import { Storage, StorageOptions } from "@google-cloud/storage";
 
 function getFormattedPrivateKey(): string | undefined {
   let key = process.env.GCP_PRIVATE_KEY;
   if (!key) return undefined;
   key = key.trim();
-  // Strip outer quotes if present
-  if (key.startsWith('"') && key.endsWith('"')) {
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
     key = key.slice(1, -1);
   }
-  // Convert escaped newlines into real newlines
   return key.replace(/\\n/g, "\n");
 }
 
-export const storage = new Storage({
+const privateKey = getFormattedPrivateKey();
+const clientEmail = process.env.GCP_CLIENT_EMAIL?.trim();
+
+const storageConfig: StorageOptions = {
   projectId: process.env.GCP_PROJECT_ID,
-  credentials: {
-    client_email: process.env.GCP_CLIENT_EMAIL,
-    private_key: getFormattedPrivateKey(),
-  },
-});
+};
+
+if (clientEmail && privateKey && privateKey.includes("BEGIN PRIVATE KEY")) {
+  storageConfig.credentials = {
+    client_email: clientEmail,
+    private_key: privateKey,
+  };
+} else {
+  console.log("[GCS] Using ambient Cloud Run Service Account credentials.");
+}
+
+export const storage = new Storage(storageConfig);
 
 export const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 export const bucket = storage.bucket(BUCKET_NAME);
