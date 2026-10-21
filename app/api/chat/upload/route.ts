@@ -80,9 +80,12 @@ export async function POST(req: NextRequest) {
         errObj?.message?.includes("Permission 'storage.objects.create' denied");
 
       if (isPermissionDenied) {
+        // Place the fallback definition here:
+        const saEmail = process.env.GCP_CLIENT_EMAIL || "Cloud Run default service account";
+
         return NextResponse.json(
           {
-            error: `Google Cloud Storage Permission Denied: The service account '${process.env.GCP_CLIENT_EMAIL}' requires the 'Storage Object Admin' (or 'Storage Object Creator') role on bucket '${BUCKET_NAME}' in your Google Cloud Console.`,
+            error: `Google Cloud Storage Permission Denied: The service account '${saEmail}' requires the 'Storage Object Admin' (or 'Storage Object Creator') role on bucket '${BUCKET_NAME}' in your Google Cloud Console.`,
             details: errObj?.message,
             gcpConfigured: true,
           },

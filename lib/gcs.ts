@@ -13,23 +13,11 @@ function getFormattedPrivateKey(): string | undefined {
   return key.replace(/\\n/g, "\n");
 }
 
-const privateKey = getFormattedPrivateKey();
-const clientEmail = process.env.GCP_CLIENT_EMAIL?.trim();
-
-const storageConfig: StorageOptions = {
+const storageOptions: StorageOptions = {
   projectId: process.env.GCP_PROJECT_ID,
 };
 
-if (clientEmail && privateKey && privateKey.includes("BEGIN PRIVATE KEY")) {
-  storageConfig.credentials = {
-    client_email: clientEmail,
-    private_key: privateKey,
-  };
-} else {
-  console.log("[GCS] Using ambient Cloud Run Service Account credentials.");
-}
-
-export const storage = new Storage(storageConfig);
+export const storage = new Storage(storageOptions);
 
 export const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 export const bucket = storage.bucket(BUCKET_NAME);
@@ -39,11 +27,8 @@ export const bucket = storage.bucket(BUCKET_NAME);
 // ==========================================
 
 export const ALLOWED_EXTENSIONS = {
-  // Images
   image: ["jpg", "jpeg", "png", "webp", "gif", "svg"],
-  // Short Videos
   video: ["mp4", "webm", "mov", "m4v"],
-  // PDF & Documents
   document: [
     "pdf",
     "doc",
@@ -60,7 +45,7 @@ export const ALLOWED_EXTENSIONS = {
 
 export const MAX_FILE_SIZES = {
   image: 25 * 1024 * 1024, // 25 MB
-  video: 60 * 1024 * 1024, // 60 MB (short videos)
+  video: 60 * 1024 * 1024, // 60 MB
   document: 35 * 1024 * 1024, // 35 MB
 };
 
@@ -93,28 +78,21 @@ export function validateChatFile(
   let category: FileCategory | undefined;
 
   if (ALLOWED_EXTENSIONS.image.includes(ext) || mimeType.startsWith("image/")) {
-    if (ALLOWED_EXTENSIONS.image.includes(ext)) {
-      category = "image";
-    }
-  }
-
-  if (ALLOWED_EXTENSIONS.video.includes(ext) || mimeType.startsWith("video/")) {
-    if (ALLOWED_EXTENSIONS.video.includes(ext)) {
-      category = "video";
-    }
-  }
-
-  if (ALLOWED_EXTENSIONS.document.includes(ext) || mimeType === "application/pdf") {
-    if (ALLOWED_EXTENSIONS.document.includes(ext)) {
-      category = "document";
-    }
+    category = "image";
+  } else if (ALLOWED_EXTENSIONS.video.includes(ext) || mimeType.startsWith("video/")) {
+    category = "video";
+  } else if (
+    ALLOWED_EXTENSIONS.document.includes(ext) ||
+    mimeType === "application/pdf"
+  ) {
+    category = "document";
   }
 
   if (!category) {
     return {
       valid: false,
       error:
-        "Unsupported file format. Only image formats (JPG, PNG, WEBP, GIF, SVG), short video formats (MP4, WEBM, MOV), PDFs, and document formats (DOC, DOCX, TXT, CSV, XLS, PPT) are allowed.",
+        "Unsupported file format. Only images, short videos, PDFs, and documents are permitted.",
     };
   }
 
@@ -136,8 +114,7 @@ export function validateChatFile(
 }
 
 /**
- * Uploads a chat attachment directly to Google Cloud Storage.
- * Generates a signed URL with 7 days validity for immediate viewing.
+ * Uploads a chat attachment directly to Google Cloud Storage using explicit streams.
  */
 export async function uploadChatAttachmentToGCS(
   buffer: Buffer,
@@ -151,21 +128,34 @@ export async function uploadChatAttachmentToGCS(
 
   const gcsFile = bucket.file(objectKey);
 
-  // Upload to GCS
-  await gcsFile.save(buffer, {
-    resumable: false,
-    contentType: mimeType,
-    metadata: {
+  // Use writeStream with explicit error handling instead of gcsFile.save(buffer)
+  await new Promise<void>((resolve, reject) => {
+    const writeStream = gcsFile.createWriteStream({
+      resumable: false,
       contentType: mimeType,
       metadata: {
-        originalName: fileName,
-        uploadedBy: senderId || "unknown",
-        uploadedAt: new Date().toISOString(),
+        contentType: mimeType,
+        metadata: {
+          originalName: fileName,
+          uploadedBy: senderId || "unknown",
+          uploadedAt: new Date().toISOString(),
+        },
       },
-    },
+    });
+
+    writeStream.on("error", (err) => {
+      console.error("[GCS Stream Error Details]:", err);
+      reject(err);
+    });
+
+    writeStream.on("finish", () => {
+      resolve();
+    });
+
+    writeStream.end(buffer);
   });
 
-  // Generate 7-day signed read URL
+  // Generate signed URL (or fallback to public URL)
   let fileUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${objectKey}`;
   try {
     const [signedUrl] = await gcsFile.getSignedUrl({
@@ -174,7 +164,7 @@ export async function uploadChatAttachmentToGCS(
     });
     fileUrl = signedUrl;
   } catch (signErr) {
-    console.warn("[GCS] Signed URL generation fallback to public URL:", signErr);
+    console.warn("[GCS] Signed URL generation fallback to standard URL:", signErr);
   }
 
   return {
