@@ -34,6 +34,14 @@ export const storage = new Storage(storageOptions);
 export const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 export const bucket = storage.bucket(BUCKET_NAME);
 
+console.log("[GCS INIT]", {
+  projectId: storageOptions.projectId,
+  bucket: BUCKET_NAME,
+  usingExplicitCredentials: !!storageOptions.credentials,
+  hasClientEmail: !!process.env.GCP_CLIENT_EMAIL,
+  hasPrivateKey: !!process.env.GCP_PRIVATE_KEY,
+});
+
 console.log("[GCS CONFIG]", {
   projectId: process.env.GCP_PROJECT_ID,
   bucket: BUCKET_NAME,
