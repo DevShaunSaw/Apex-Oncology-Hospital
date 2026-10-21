@@ -13,14 +13,33 @@ function getFormattedPrivateKey(): string | undefined {
   return key.replace(/\\n/g, "\n");
 }
 
+const privateKey = getFormattedPrivateKey();
+const clientEmail = process.env.GCP_CLIENT_EMAIL?.trim();
+
 const storageOptions: StorageOptions = {
-  projectId: process.env.GCP_PROJECT_ID,
+  projectId: process.env.GCP_PROJECT_ID || "apex-512206",
 };
+
+// Use explicit credentials if provided (e.g. Local development)
+// Otherwise fallback to ambient Cloud Run ADC (Production)
+if (clientEmail && privateKey && privateKey.includes("BEGIN PRIVATE KEY")) {
+  storageOptions.credentials = {
+    client_email: clientEmail,
+    private_key: privateKey,
+  };
+}
 
 export const storage = new Storage(storageOptions);
 
 export const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 export const bucket = storage.bucket(BUCKET_NAME);
+
+console.log("[GCS CONFIG]", {
+  projectId: process.env.GCP_PROJECT_ID,
+  bucket: BUCKET_NAME,
+  hasClientEmail: !!process.env.GCP_CLIENT_EMAIL,
+  hasPrivateKey: !!process.env.GCP_PRIVATE_KEY,
+});
 
 // ==========================================
 // File Validation Rules
@@ -123,48 +142,49 @@ export async function uploadChatAttachmentToGCS(
   senderId?: string
 ) {
   const timestamp = Date.now();
+
   const cleanName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-  const objectKey = `chat-attachments/${senderId || "general"}/${timestamp}_${cleanName}`;
+
+  const objectKey = `chat-attachments/${senderId || "general"
+    }/${timestamp}_${cleanName}`;
 
   const gcsFile = bucket.file(objectKey);
 
-  // Use writeStream with explicit error handling instead of gcsFile.save(buffer)
-  await new Promise<void>((resolve, reject) => {
-    const writeStream = gcsFile.createWriteStream({
-      resumable: false,
-      contentType: mimeType,
-      metadata: {
-        contentType: mimeType,
-        metadata: {
-          originalName: fileName,
-          uploadedBy: senderId || "unknown",
-          uploadedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    writeStream.on("error", (err) => {
-      console.error("[GCS Stream Error Details]:", err);
-      reject(err);
-    });
-
-    writeStream.on("finish", () => {
-      resolve();
-    });
-
-    writeStream.end(buffer);
+  console.log("[GCS] Starting upload:", {
+    bucket: BUCKET_NAME,
+    objectKey,
+    size: buffer.length,
+    mimeType,
   });
 
-  // Generate signed URL (or fallback to public URL)
+  await gcsFile.save(buffer, {
+    resumable: false,
+    metadata: {
+      contentType: mimeType,
+      metadata: {
+        originalName: fileName,
+        uploadedBy: senderId || "unknown",
+        uploadedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  console.log("[GCS] Upload completed:", objectKey);
+
   let fileUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${objectKey}`;
+
   try {
     const [signedUrl] = await gcsFile.getSignedUrl({
       action: "read",
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     });
+
     fileUrl = signedUrl;
   } catch (signErr) {
-    console.warn("[GCS] Signed URL generation fallback to standard URL:", signErr);
+    console.warn(
+      "[GCS] Signed URL generation failed. Using standard URL:",
+      signErr
+    );
   }
 
   return {
