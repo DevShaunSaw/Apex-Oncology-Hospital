@@ -9,24 +9,35 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[GCS TEST 1] Checking bucket access...");
+    console.log("[GCS TEST 2] Starting tiny upload...");
 
-    const [exists] = await bucket.exists();
+    const objectKey = `debug/test-${Date.now()}.txt`;
+    const testFile = bucket.file(objectKey);
 
-    console.log("[GCS TEST 1] Bucket exists:", exists);
+    await testFile.save("Hello from Cloud Run!", {
+      resumable: false,
+      metadata: {
+        contentType: "text/plain",
+      },
+    });
+
+    console.log("[GCS TEST 2] Upload SUCCESS:", objectKey);
 
     return NextResponse.json({
       success: true,
-      bucketExists: exists,
+      message: "Tiny GCS upload succeeded",
+      objectKey,
     });
   } catch (error: any) {
-    console.error("[GCS TEST 1] FAILED:", error);
+    console.error("[GCS TEST 2] FAILED:", error);
 
     return NextResponse.json(
       {
         success: false,
         error: error?.message,
         code: error?.code,
+        errors: error?.errors,
+        stack: error?.stack,
       },
       { status: 500 }
     );
