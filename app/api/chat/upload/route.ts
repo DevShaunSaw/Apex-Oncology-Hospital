@@ -51,26 +51,39 @@ export async function POST(req: NextRequest) {
 
     // 2. Upload file directly to GCP Cloud Storage Bucket
     try {
-      const gcpResult = await uploadChatAttachmentToGCS(
-        buffer,
-        file.name,
-        file.type || "application/octet-stream",
-        userId
-      );
-
-      const fileExtension = file.name.split(".").pop()?.toUpperCase() || "FILE";
+      // const gcpResult = await uploadChatAttachmentToGCS(
+      //   buffer,
+      //   file.name,
+      //   file.type || "application/octet-stream",
+      //   userId
+      // );
+      console.log("[UPLOAD TEST] File received successfully", {
+        name: file.name,
+        size: buffer.length,
+        type: file.type,
+      });
 
       return NextResponse.json({
         success: true,
-        fileUrl: gcpResult.fileUrl,
+        test: true,
         fileName: file.name,
-        fileType: fileExtension,
-        category: validation.category,
-        objectKey: gcpResult.objectKey,
-        fileSize: file.size,
+        fileSize: buffer.length,
         mimeType: file.type,
-        storage: "gcp",
-        bucket: BUCKET_NAME,
+      });
+
+      // const fileExtension = file.name.split(".").pop()?.toUpperCase() || "FILE";
+
+      return NextResponse.json({
+        // success: true,
+        // fileUrl: gcpResult.fileUrl,
+        // fileName: file.name,
+        // fileType: fileExtension,
+        // category: validation.category,
+        // objectKey: gcpResult.objectKey,
+        // fileSize: file.size,
+        // mimeType: file.type,
+        // storage: "gcp",
+        // bucket: BUCKET_NAME,
       });
     } catch (gcpErr: unknown) {
       console.error("[GCP Storage Upload Error]:", gcpErr);
