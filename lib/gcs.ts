@@ -1,53 +1,11 @@
-import { Storage, StorageOptions } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 
-function getFormattedPrivateKey(): string | undefined {
-  let key = process.env.GCP_PRIVATE_KEY;
-  if (!key) return undefined;
-  key = key.trim();
-  if (
-    (key.startsWith('"') && key.endsWith('"')) ||
-    (key.startsWith("'") && key.endsWith("'"))
-  ) {
-    key = key.slice(1, -1);
-  }
-  return key.replace(/\\n/g, "\n");
-}
+const storage = new Storage();
 
-const privateKey = getFormattedPrivateKey();
-const clientEmail = process.env.GCP_CLIENT_EMAIL?.trim();
+export const BUCKET_NAME =
+  process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 
-const storageOptions: StorageOptions = {
-  projectId: process.env.GCP_PROJECT_ID || "apex-512206",
-};
-
-// Use explicit credentials if provided (e.g. Local development)
-// Otherwise fallback to ambient Cloud Run ADC (Production)
-if (clientEmail && privateKey && privateKey.includes("BEGIN PRIVATE KEY")) {
-  storageOptions.credentials = {
-    client_email: clientEmail,
-    private_key: privateKey,
-  };
-}
-
-export const storage = new Storage(storageOptions);
-
-export const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "apex-chat-bucket";
 export const bucket = storage.bucket(BUCKET_NAME);
-
-console.log("[GCS INIT]", {
-  projectId: storageOptions.projectId,
-  bucket: BUCKET_NAME,
-  usingExplicitCredentials: !!storageOptions.credentials,
-  hasClientEmail: !!process.env.GCP_CLIENT_EMAIL,
-  hasPrivateKey: !!process.env.GCP_PRIVATE_KEY,
-});
-
-console.log("[GCS CONFIG]", {
-  projectId: process.env.GCP_PROJECT_ID,
-  bucket: BUCKET_NAME,
-  hasClientEmail: !!process.env.GCP_CLIENT_EMAIL,
-  hasPrivateKey: !!process.env.GCP_PRIVATE_KEY,
-});
 
 // ==========================================
 // File Validation Rules
