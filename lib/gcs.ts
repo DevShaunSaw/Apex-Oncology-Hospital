@@ -158,39 +158,49 @@ export async function uploadChatAttachmentToGCS(
 
   const gcsFile = bucket.file(objectKey);
 
-  console.log("[GCS] Starting upload:", {
-    bucket: BUCKET_NAME,
-    objectKey,
-    size: buffer.length,
-    mimeType,
-  });
+  console.log("[GCS UPLOAD] Starting upload");
+  console.log("[GCS UPLOAD] Object:", objectKey);
+  console.log("[GCS UPLOAD] Size:", buffer.length);
+  console.log("[GCS UPLOAD] MIME:", mimeType);
 
-  await gcsFile.save(buffer, {
-    resumable: false,
-    metadata: {
-      contentType: mimeType,
+  try {
+    await gcsFile.save(buffer, {
+      resumable: false,
+
       metadata: {
-        originalName: fileName,
-        uploadedBy: senderId || "unknown",
-        uploadedAt: new Date().toISOString(),
+        contentType: mimeType,
+
+        metadata: {
+          originalName: fileName,
+          uploadedBy: senderId || "unknown",
+          uploadedAt: new Date().toISOString(),
+        },
       },
-    },
-  });
+    });
 
-  console.log("[GCS] Upload completed:", objectKey);
+    console.log("[GCS UPLOAD] Upload SUCCESS:", objectKey);
+  } catch (error) {
+    console.error("[GCS UPLOAD] Upload FAILED:", error);
+    throw error;
+  }
 
+  // Generate signed URL
   let fileUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${objectKey}`;
 
   try {
+    console.log("[GCS UPLOAD] Generating signed URL...");
+
     const [signedUrl] = await gcsFile.getSignedUrl({
       action: "read",
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     });
 
     fileUrl = signedUrl;
+
+    console.log("[GCS UPLOAD] Signed URL generated successfully");
   } catch (signErr) {
     console.warn(
-      "[GCS] Signed URL generation failed. Using standard URL:",
+      "[GCS UPLOAD] Signed URL generation failed. Using standard URL:",
       signErr
     );
   }
