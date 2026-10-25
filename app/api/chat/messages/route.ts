@@ -53,7 +53,16 @@ export async function POST(req: Request) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback_secret") as { id: string };
     const myId = decoded.id;
 
-    const { receiverId, message, type, fileName, fileUrl, fileType, objectKey, fileSize, mimeType } = await req.json();
+    // Verify sender is not blocked
+    const senderUser = await User.findById(myId).select("isBlocked blockedReason");
+    if (senderUser?.isBlocked) {
+      return NextResponse.json(
+        { error: "Forbidden: Your account has been suspended from using chat.", blocked: true, reason: senderUser.blockedReason },
+        { status: 403 }
+      );
+    }
+
+    const { receiverId, message, type, fileName, fileUrl, fileType, objectKey, fileSize, mimeType, referredDoctor } = await req.json();
 
     if (!receiverId) {
       return NextResponse.json({ error: "Missing receiverId" }, { status: 400 });
@@ -69,6 +78,7 @@ export async function POST(req: Request) {
       receiver: receiverId,
       message,
       type: type || "text",
+      referredDoctor: type === "doctor_referral" && referredDoctor ? referredDoctor : null,
       fileName,
       fileUrl,
       fileType,
@@ -88,6 +98,7 @@ export async function POST(req: Request) {
       else if (type === "audio") previewText = "🎤 Sent an audio message";
       else if (type === "document") previewText = `📄 Sent a file: ${fileName || "Document"}`;
       else if (type === "appointment") previewText = `🗓️ ${message || "Scheduled an appointment"}`;
+      else if (type === "doctor_referral") previewText = `👨‍⚕️ Referred Doctor: ${referredDoctor?.name || "Specialist Oncologist"}`;
 
       sendPushNotificationToUser(receiverId, {
         title: senderName,
@@ -101,8 +112,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ message: newMsg }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Send message error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Internal Server Error", stack: error?.stack }, { status: 500 });
   }
 }

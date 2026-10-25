@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppProvider>
           <Navbar />
-          <main className="min-h-screen">
+          <main className="flex-1">
             {children}
           </main>
           <PWAInstallPrompt />

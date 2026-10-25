@@ -22,6 +22,7 @@ export const pageToRouteMap: Record<string, string> = {
     "disease-info": "/disease-info",
     "symptoms": "/symptoms",
     "patients": "/patients",
+    "blocked": "/blocked",
 };
 
 export const routeToPageMap: Record<string, string> = {
@@ -45,6 +46,7 @@ export const routeToPageMap: Record<string, string> = {
     "/disease-info": "disease-info",
     "/symptoms": "symptoms",
     "/patients": "patients",
+    "/blocked": "blocked",
 };
 
 interface AppContextType {
@@ -101,6 +103,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     }, [pathname, router]);
 
+    // Force blocked users to stay on /blocked
+    useEffect(() => {
+        if (currentUser?.isBlocked && pathname !== "/blocked") {
+            setPageState("blocked");
+            router.push("/blocked");
+        }
+    }, [currentUser, pathname, router]);
+
     const checkUser = async () => {
         try {
             const res = await fetch("/api/auth/me");
@@ -109,8 +119,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(data.user);
                 setIsLoggedIn(true);
                 setRole(data.user.role);
-                // If user is on auth screens while already logged in, route to their role dashboard
-                if (pathname === "/login" || pathname === "/register") {
+
+                // If user has been blocked, force redirect to /blocked
+                if (data.user.isBlocked) {
+                    setPageState("blocked");
+                    if (pathname !== "/blocked") {
+                        router.push("/blocked");
+                    }
+                    return;
+                }
+
+                // If user is on home screen or auth screens while logged in, route to their role dashboard
+                if (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/blocked") {
                     router.push(`/${data.user.role}-dashboard`);
                 }
             } else {
@@ -141,6 +161,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(data.user);
                 setIsLoggedIn(true);
                 setRole(data.user.role);
+
+                // If user is blocked, route directly to /blocked
+                if (data.user.isBlocked || data.blocked) {
+                    setPageState("blocked");
+                    router.push("/blocked");
+                    return { success: true, blocked: true, blockedReason: data.blockedReason };
+                }
+
                 const target = `/${data.user.role}-dashboard`;
                 setPageState(`${data.user.role}-dashboard`);
                 router.push(target);

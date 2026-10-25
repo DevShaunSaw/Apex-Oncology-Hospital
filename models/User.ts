@@ -34,10 +34,12 @@ const UserSchema = new mongoose.Schema(
     type: { type: String },
     recoveryIndex: { type: Number },
     vitals: {
-      bp: { type: String },
-      temp: { type: String },
-      pulse: { type: String },
-      weight: { type: String }
+      bp: { type: String, default: "" },
+      temp: { type: String, default: "" },
+      pulse: { type: String, default: "" },
+      weight: { type: String, default: "" },
+      lastUpdated: { type: String, default: "" },
+      updatedAt: { type: Date }
     },
     labTrends: [
       {
@@ -68,10 +70,18 @@ const UserSchema = new mongoose.Schema(
     since: { type: String },
     prognosis: { type: String },
     flagged: { type: Boolean, default: false },
-    unreadMessages: { type: Number, default: 0 }
+    unreadMessages: { type: Number, default: 0 },
+    // Account suspension / block status
+    isBlocked: { type: Boolean, default: false },
+    blockedReason: { type: String, default: "" },
+    blockedAt: { type: Date }
   },
   { timestamps: true }
 );
 
-// Prevent compiling model multiple times
+// Prevent stale cached model in development
+if (mongoose.models && mongoose.models.User) {
+  delete (mongoose.models as any).User;
+}
+
 export default mongoose.models.User || mongoose.model("User", UserSchema);

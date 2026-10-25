@@ -70,11 +70,21 @@ export async function PATCH(req: NextRequest) {
 
         // If vitals object is passed, update patient vitals
         if (vitals && typeof vitals === "object") {
+            const now = new Date();
+            const lastUpdatedStr = now.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
             updateData.vitals = {
                 bp: vitals.bp !== undefined ? vitals.bp : "",
                 temp: vitals.temp !== undefined ? vitals.temp : "",
                 pulse: vitals.pulse !== undefined ? vitals.pulse : "",
-                weight: vitals.weight !== undefined ? vitals.weight : ""
+                weight: vitals.weight !== undefined ? vitals.weight : "",
+                lastUpdated: vitals.lastUpdated || lastUpdatedStr,
+                updatedAt: now,
             };
         }
 

@@ -32,8 +32,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const userObj = user.toObject();
+    delete userObj.password;
+
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, isBlocked: Boolean(user.isBlocked) },
       process.env.JWT_SECRET || "fallback_secret",
       { expiresIn: "7d" }
     );
@@ -46,8 +49,13 @@ export async function POST(req: Request) {
       path: "/",
     });
 
-    const userObj = user.toObject();
-    delete userObj.password;
+    if (user.isBlocked) {
+      return NextResponse.json({
+        user: userObj,
+        blocked: true,
+        blockedReason: user.blockedReason || "Your account has been suspended by the administrator for violating platform policies.",
+      });
+    }
 
     return NextResponse.json({ user: userObj });
   } catch (error: any) {

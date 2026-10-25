@@ -14,6 +14,8 @@ export interface Vitals {
     temp?: string;
     pulse?: string;
     weight?: string;
+    lastUpdated?: string;
+    updatedAt?: Date | string;
 }
 
 export interface LabTrend {
@@ -158,10 +160,11 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
             });
             const data = await res.json();
             if (data.success) {
-                setCurrentVitals(newVitals);
+                const savedVitals = data.patient?.vitals || newVitals;
+                setCurrentVitals(savedVitals);
                 setIsEditingVitals(false);
                 setStatusFeedback("Vitals saved to database!");
-                onVitalsUpdated?.(patientId, newVitals);
+                onVitalsUpdated?.(patientId, savedVitals);
                 setTimeout(() => setStatusFeedback(""), 3000);
             } else {
                 setStatusFeedback(data.message || "Failed to save vitals.");
@@ -217,10 +220,17 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
-                                    <Activity size={14} className="text-teal-500" />
-                                    Latest Body Vitals
-                                </h3>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
+                                        <Activity size={14} className="text-teal-500" />
+                                        Latest Body Vitals
+                                    </h3>
+                                    {currentVitals?.lastUpdated && (
+                                        <div className="text-[10px] text-slate-400 mt-0.5 ml-5">
+                                            Recorded: {currentVitals.lastUpdated}
+                                        </div>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => {
                                         setIsEditingVitals(!isEditingVitals);

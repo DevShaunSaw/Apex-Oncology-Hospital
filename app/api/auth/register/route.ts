@@ -47,14 +47,8 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userRole = role || "patient";
 
-    let assignedDoc = null;
-    if (userRole === "patient") {
-      // Find a doctor to assign to this patient
-      const doctor = await User.findOne({ role: "doctor" });
-      if (doctor) {
-        assignedDoc = doctor._id;
-      }
-    }
+    // Patients register without an assigned doctor by default (open to chat to any doctor)
+    const assignedDoc = null;
 
     const user = await User.create({
       name,

@@ -1,11 +1,29 @@
 "use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useApp } from "../context/AppContext";
 import { ArrowRight, Shield, Clock, Users, Star, ChevronRight, Heart, Activity } from "lucide-react";
 import { testimonials, doctors } from "../data/mockData";
 
 export default function HomePage() {
-    const { setPage } = useApp();
+    const { setPage, isLoggedIn, role, loading } = useApp();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && isLoggedIn && role) {
+            router.replace(`/${role}-dashboard`);
+        }
+    }, [loading, isLoggedIn, role, router]);
+
+    if (loading || (isLoggedIn && role)) {
+        return (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
+                <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-slate-500 font-medium">Redirecting to your dashboard...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen">

@@ -28,7 +28,9 @@ export async function GET() {
     const uniqueIds = Array.from(new Set([...activeReceivers, ...activeSenders]));
 
     // Find profiles of these users
-    const activeConversations = await User.find({ _id: { $in: uniqueIds } }).select("-password");
+    const activeConversations = await User.find({ _id: { $in: uniqueIds } })
+      .select("-password")
+      .populate("assignedDoctor", "name specialty");
 
     return NextResponse.json({ conversations: activeConversations });
   } catch (error) {

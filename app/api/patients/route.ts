@@ -75,12 +75,13 @@ export async function GET(req: NextRequest) {
         const search = searchParams.get("search")?.trim() ?? "";
         const status = searchParams.get("status") ?? "all";
         const sortBy = searchParams.get("sortBy") ?? "name";
+        const showAll = searchParams.get("all") === "true";
 
         // Build MongoDB query
         const query: any = { role: "patient" };
         
-        // If a doctor is logged in, show only patients assigned to them
-        if (loggedInDoctorId) {
+        // If a doctor is logged in, show only patients assigned to them unless all=true is specified
+        if (loggedInDoctorId && !showAll) {
             query.assignedDoctor = loggedInDoctorId;
         }
 

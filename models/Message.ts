@@ -26,8 +26,14 @@ const MessageSchema = new mongoose.Schema(
         "audio",
         "document",
         "appointment",
+        "doctor_referral",
       ],
       default: "text",
+    },
+
+    referredDoctor: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
 
     fileName: {
@@ -68,5 +74,8 @@ const MessageSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.models.Message ||
-  mongoose.model("Message", MessageSchema);
+if (mongoose.models.Message) {
+  delete mongoose.models.Message;
+}
+
+export default mongoose.model("Message", MessageSchema);

@@ -215,13 +215,6 @@ export function LoginPage() {
             </div>
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
-                    <Link
-                        href="/"
-                        onClick={() => setPage("home")}
-                        className="w-14 h-14 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-teal-glow hover:scale-105 transition-transform"
-                    >
-                        <span className="text-white font-bold text-2xl font-display">A</span>
-                    </Link>
                     <h1 className="text-3xl font-display text-teal-900">Welcome Back</h1>
                     <p className="text-slate-500 mt-1 text-sm">Sign in to your care dashboard</p>
                 </div>
@@ -256,9 +249,6 @@ export function LoginPage() {
                         <button onClick={handleLogin} className="w-full bg-teal-600 text-white py-3 rounded-xl font-semibold hover:bg-teal-700 transition-colors">
                             Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
                         </button>
-                    </div>
-                    <div className="mt-4 p-3 bg-teal-50 rounded-xl text-xs text-teal-700 text-center">
-                        Demo mode — click Sign In with any role to explore
                     </div>
                 </div>
                 <p className="text-center text-sm text-slate-500 mt-4">
