@@ -15,13 +15,15 @@ export default function BlockedPage() {
     const reason = currentUser?.blockedReason || "Violation of patient communication policies, inappropriate behavior, or unethical platform conduct.";
 
     const formattedDate = currentUser?.blockedAt 
-        ? new Date(currentUser.blockedAt).toLocaleDateString("en-IN", {
+        ? new Date(currentUser.blockedAt).toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
             day: "numeric",
             month: "long",
             year: "numeric",
             hour: "2-digit",
             minute: "2-digit",
-        })
+            hour12: true,
+        }) + " IST"
         : null;
 
     const handleCloseApp = async () => {

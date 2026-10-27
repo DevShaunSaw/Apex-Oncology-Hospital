@@ -23,12 +23,14 @@ export const pageToRouteMap: Record<string, string> = {
     "symptoms": "/symptoms",
     "patients": "/patients",
     "blocked": "/blocked",
+    "reset-password": "/reset-password",
 };
 
 export const routeToPageMap: Record<string, string> = {
     "/": "home",
     "/register": "register",
     "/login": "login",
+    "/reset-password": "reset-password",
     "/dashboard": "dashboard",
     "/patient-dashboard": "patient-dashboard",
     "/doctor-dashboard": "doctor-dashboard",
@@ -60,7 +62,7 @@ interface AppContextType {
     setIsLoggedIn: (v: boolean) => void;
     currentUser: any;
     setCurrentUser: (u: any) => void;
-    login: (email: string, password: string, role: string) => Promise<{ success: boolean; error?: string }>;
+    login: (email: string, password: string, role?: string) => Promise<{ success: boolean; error?: string; blocked?: boolean; blockedReason?: string }>;
     register: (form: any) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
     loading: boolean;
@@ -149,7 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         checkUser();
     }, []);
 
-    const login = async (email: string, password: string, role: string) => {
+    const login = async (email: string, password: string, role?: string) => {
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
@@ -214,8 +216,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(null);
         setIsLoggedIn(false);
         setRole(null);
-        setPageState("home");
-        router.push("/");
+        setPageState("login");
+        router.push("/login");
+        router.refresh();
     };
 
     return (

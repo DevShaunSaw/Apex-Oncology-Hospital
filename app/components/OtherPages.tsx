@@ -8,7 +8,11 @@ import {
     ArrowRight, Eye, Clock, Thermometer, Droplets,
     Stethoscope, UserCheck, UserPlus, X, Edit3, Search, Filter,
     Ban, ShieldAlert, ShieldCheck, User,
+    Building2, Award, Briefcase, GraduationCap, RefreshCw,
 } from "lucide-react";
+import VitalsHistoryModal from "./VitalsHistoryModal";
+import { formatVitalsTimestamp } from "@/lib/dateTime";
+import { HOSPITAL_DEPARTMENTS } from "@/lib/departments";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Disease Info
@@ -227,13 +231,16 @@ export function SymptomsPage() {
                 const d = new Date(s.createdAt);
                 if (!isNaN(d.getTime())) {
                     const dayDate = d.toLocaleDateString("en-US", {
+                        timeZone: "Asia/Kolkata",
                         weekday: "short",
                         month: "short",
                         day: "numeric",
                     });
                     const time = d.toLocaleTimeString("en-US", {
+                        timeZone: "Asia/Kolkata",
                         hour: "2-digit",
                         minute: "2-digit",
+                        hour12: true,
                     });
                     return { dayDate, time, combined: `${dayDate} · ${time}` };
                 }
@@ -469,6 +476,7 @@ export function DoctorDashboard() {
     const [vitalWeight, setVitalWeight] = useState("");
     const [vitalsMessage, setVitalsMessage] = useState("");
     const [savingVitals, setSavingVitals] = useState(false);
+    const [showVitalsHistory, setShowVitalsHistory] = useState(false);
 
     const fetchDashboardData = async () => {
         try {
@@ -906,7 +914,7 @@ export function DoctorDashboard() {
 
                 {/* Patient Body Vitals Panel */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                         <div>
                             <h3 className="font-semibold text-slate-700 flex items-center gap-2">
                                 <Activity size={16} className="text-rose-500" />
@@ -916,6 +924,16 @@ export function DoctorDashboard() {
                                 Select any patient to inspect or record body vitals. Saved vitals persist to the database and sync across portals.
                             </p>
                         </div>
+                        {vitalsPatientId && (
+                            <button
+                                type="button"
+                                onClick={() => setShowVitalsHistory(true)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100/80 border border-teal-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer self-start sm:self-auto shadow-2xs"
+                            >
+                                <Clock size={13} className="text-teal-600" />
+                                View Vitals History
+                            </button>
+                        )}
                     </div>
 
                     {/* Dedicated Patient Selector for Vitals */}
@@ -952,9 +970,16 @@ export function DoctorDashboard() {
                                     </div>
                                     <div className="text-[11px] text-teal-700 font-medium mt-1">
                                         {selectedPt.vitals?.lastUpdated 
-                                            ? `Last recorded: ${selectedPt.vitals.lastUpdated}` 
+                                            ? `Last recorded: ${formatVitalsTimestamp(selectedPt.vitals.lastUpdated, selectedPt.vitals.updatedAt)}` 
                                             : "No vitals recorded in database yet"}
                                     </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowVitalsHistory(true)}
+                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-900 underline cursor-pointer"
+                                    >
+                                        <Clock size={11} /> View past vitals history
+                                    </button>
                                 </div>
                             );
                         })()}
@@ -1056,6 +1081,36 @@ export function DoctorDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Vitals History Modal */}
+            {(() => {
+                const selectedPt = patients.find(p => (p.id || p._id) === vitalsPatientId);
+                return (
+                    <VitalsHistoryModal
+                        isOpen={showVitalsHistory}
+                        onClose={() => setShowVitalsHistory(false)}
+                        patientId={vitalsPatientId}
+                        patientName={selectedPt?.name}
+                        currentVitals={selectedPt?.vitals}
+                        canAddVitals={true}
+                        onVitalsRecorded={(savedVitals) => {
+                            if (vitalsPatientId) {
+                                setPatients(prev => prev.map(p => {
+                                    if ((p.id || p._id) === vitalsPatientId) {
+                                        return { ...p, vitals: savedVitals };
+                                    }
+                                    return p;
+                                }));
+                                setVitalBp(savedVitals.bp || "");
+                                setVitalPulse(savedVitals.pulse || "");
+                                setVitalTemp(savedVitals.temp || "");
+                                setVitalWeight(savedVitals.weight || "");
+                            }
+                            fetchDashboardData();
+                        }}
+                    />
+                );
+            })()}
         </div>
     );
 }
@@ -1075,7 +1130,20 @@ export function AdminDashboard() {
     // Doctor registration form
     const [showDoctorForm, setShowDoctorForm] = useState(false);
     const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
-    const [docForm, setDocForm] = useState({ name: "", email: "", password: "", specialty: "", experience: "", available: true });
+    const [docForm, setDocForm] = useState({
+        name: "",
+        email: "",
+        password: "",
+        department: "Department of Oncology",
+        position: "",
+        degree: "",
+        yoe: "",
+        experience: "",
+        available: true,
+    });
+    const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState("all");
+    const [doctorSearchQuery, setDoctorSearchQuery] = useState("");
+    const [isSyncingSpecialists, setIsSyncingSpecialists] = useState(false);
     const [docSaving, setDocSaving] = useState(false);
 
     // Patient assignment edit modal state
@@ -1243,24 +1311,29 @@ export function AdminDashboard() {
         fetchAll();
     }, []);
 
-    // Doctor registration
+    // Doctor registration / update
     const handleDoctorSave = async () => {
-        if (editingDoctorId) {
-            // Update existing doctor
-            if (!docForm.name || !docForm.specialty) {
-                flash("Name and specialty are required.");
-                return;
-            }
-            setDocSaving(true);
-            try {
+        if (!docForm.name || !docForm.department || !docForm.position || !docForm.degree) {
+            flash("Doctor Name, Department, Position, and Degree are required.");
+            return;
+        }
+
+        setDocSaving(true);
+        try {
+            if (editingDoctorId) {
+                // Update existing doctor
                 const res = await fetch("/api/users", {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         id: editingDoctorId,
                         name: docForm.name,
-                        specialty: docForm.specialty,
+                        department: docForm.department,
+                        position: docForm.position,
+                        degree: docForm.degree,
+                        yoe: docForm.yoe,
                         experience: docForm.experience,
+                        specialty: docForm.department,
                         available: docForm.available,
                     }),
                 });
@@ -1272,70 +1345,93 @@ export function AdminDashboard() {
                 } else {
                     flash(data.error || "Failed to update doctor.");
                 }
-            } catch (err) {
-                flash("An error occurred.");
-            } finally {
-                setDocSaving(false);
-            }
-        } else {
-            // Register new doctor
-            if (!docForm.name || !docForm.email || !docForm.password || !docForm.specialty) {
-                flash("Name, email, password, and specialty are required.");
-                return;
-            }
-            setDocSaving(true);
-            try {
-                const res = await fetch("/api/auth/register", {
+            } else {
+                // Register new doctor via /api/users POST (preserves admin session)
+                if (!docForm.email || !docForm.password) {
+                    flash("Email and temporary password are required for new doctor registration.");
+                    return;
+                }
+                const res = await fetch("/api/users", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         name: docForm.name,
                         email: docForm.email,
                         password: docForm.password,
-                        role: "doctor",
-                        specialty: docForm.specialty,
+                        department: docForm.department,
+                        position: docForm.position,
+                        degree: docForm.degree,
+                        yoe: docForm.yoe,
                         experience: docForm.experience,
+                        specialty: docForm.department,
+                        available: docForm.available,
                     }),
                 });
                 const data = await res.json();
-                if (res.ok && data.user) {
-                    flash("Doctor registered successfully!");
+                if (data.success) {
+                    flash("Doctor registered successfully under " + docForm.department + "!");
                     resetDoctorForm();
-                    // Re-login as admin since register sets the cookie to the new user
-                    await fetch("/api/auth/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: "admin@apex.com", password: "admin123", role: "admin" }),
-                    });
                     fetchAll();
                 } else {
                     flash(data.error || "Failed to register doctor.");
                 }
-            } catch (err) {
-                flash("An error occurred.");
-            } finally {
-                setDocSaving(false);
             }
+        } catch (err) {
+            flash("An error occurred while saving doctor details.");
+        } finally {
+            setDocSaving(false);
         }
     };
 
     const resetDoctorForm = () => {
         setShowDoctorForm(false);
         setEditingDoctorId(null);
-        setDocForm({ name: "", email: "", password: "", specialty: "", experience: "", available: true });
+        setDocForm({
+            name: "",
+            email: "",
+            password: "",
+            department: "Department of Oncology",
+            position: "",
+            degree: "",
+            yoe: "",
+            experience: "",
+            available: true,
+        });
     };
 
     const handleEditDoctor = (doc: any) => {
         setEditingDoctorId(doc.id || doc._id);
         setDocForm({
-            name: doc.name,
+            name: doc.name || "",
             email: doc.email || "",
             password: "",
-            specialty: doc.specialty || "",
+            department: doc.department || doc.specialty || "Department of Oncology",
+            position: doc.position || "",
+            degree: doc.degree || "",
+            yoe: doc.yoe || "",
             experience: doc.experience || "",
             available: doc.available !== false,
         });
         setShowDoctorForm(true);
+    };
+
+    const handleSyncAllDoctors = async () => {
+        if (!confirm("This will synchronize all hospital departments and specialists from the master chart to the database. Continue?")) return;
+        setIsSyncingSpecialists(true);
+        try {
+            const res = await fetch("/api/seed/doctors", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                flash(data.message || "Specialists synchronized successfully!");
+                fetchAll();
+            } else {
+                flash(data.error || "Failed to synchronize specialists.");
+            }
+        } catch {
+            flash("Error synchronizing specialists.");
+        } finally {
+            setIsSyncingSpecialists(false);
+        }
     };
 
     const handleDeleteDoctor = async (id: string) => {
@@ -1417,81 +1513,219 @@ export function AdminDashboard() {
                     ))}
                 </div>
 
-                {/* Doctor Management */}
+                {/* Doctor Management Section */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <div className="flex items-center justify-between mb-5">
-                        <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                            <Activity size={16} className="text-indigo-600" />
-                            Doctor Management
-                        </h3>
-                        <button
-                            onClick={() => { setShowDoctorForm(true); setEditingDoctorId(null); setDocForm({ name: "", email: "", password: "", specialty: "", experience: "", available: true }); }}
-                            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-colors"
-                        >
-                            <Plus size={13} /> Register Doctor
-                        </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
+                        <div>
+                            <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
+                                <Building2 size={18} className="text-teal-600" />
+                                Hospital Specialists by Department
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                {doctorsList.length} specialists across {new Set(doctorsList.map(d => d.department || "Other")).size} clinical departments
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                onClick={handleSyncAllDoctors}
+                                disabled={isSyncingSpecialists}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100/70 text-teal-700 text-xs font-semibold transition-all disabled:opacity-50"
+                                title="Sync all specialists and departments from the master brochure chart"
+                            >
+                                <RefreshCw size={13} className={isSyncingSpecialists ? "animate-spin" : ""} />
+                                {isSyncingSpecialists ? "Syncing..." : "Sync Master Chart"}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDoctorForm(true);
+                                    setEditingDoctorId(null);
+                                    setDocForm({
+                                        name: "",
+                                        email: "",
+                                        password: "",
+                                        department: "Department of Oncology",
+                                        position: "",
+                                        degree: "",
+                                        yoe: "",
+                                        experience: "",
+                                        available: true,
+                                    });
+                                }}
+                                className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-colors shadow-xs"
+                            >
+                                <Plus size={13} /> Add Specialist
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Doctor Form */}
+                    {/* Department Filter & Search Bar */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 mb-5">
+                        <div className="relative flex-1 w-full">
+                            <Search size={15} className="absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search doctor by name, position, degree, or experience..."
+                                value={doctorSearchQuery}
+                                onChange={e => setDoctorSearchQuery(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 bg-slate-50/50"
+                            />
+                        </div>
+                        <select
+                            value={selectedDepartmentFilter}
+                            onChange={e => setSelectedDepartmentFilter(e.target.value)}
+                            className="w-full sm:w-auto text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 focus:outline-none focus:border-teal-500 font-medium"
+                        >
+                            <option value="all">All Departments ({doctorsList.length})</option>
+                            {HOSPITAL_DEPARTMENTS.map(dept => {
+                                const count = doctorsList.filter(d => (d.department || d.specialty) === dept).length;
+                                return (
+                                    <option key={dept} value={dept}>
+                                        {dept} ({count})
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
+
+                    {/* Doctor Form (Add / Edit) */}
                     {showDoctorForm && (
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 mb-5">
-                            <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                                {editingDoctorId ? "Edit Doctor Details" : "Register New Doctor"}
-                            </h4>
-                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                <input
-                                    type="text" placeholder="Full Name *"
-                                    value={docForm.name} onChange={e => setDocForm({ ...docForm, name: e.target.value })}
-                                    className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
-                                />
+                        <div className="bg-slate-50/80 rounded-2xl border border-teal-100 p-5 mb-6 shadow-xs">
+                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                        <Stethoscope size={16} className="text-teal-600" />
+                                        {editingDoctorId ? "Edit Doctor Details" : "Register New Specialist Doctor"}
+                                    </h4>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Store doctor under department with doctor name, position, degree and experience
+                                    </p>
+                                </div>
+                                <button onClick={resetDoctorForm} className="text-slate-400 hover:text-slate-600 p-1">
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                {/* Doctor Name */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Doctor Name *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Dr. Amit M. Gupta"
+                                        value={docForm.name}
+                                        onChange={e => setDocForm({ ...docForm, name: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    />
+                                </div>
+
+                                {/* Department */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Department *</label>
+                                    <select
+                                        value={docForm.department}
+                                        onChange={e => setDocForm({ ...docForm, department: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    >
+                                        {HOSPITAL_DEPARTMENTS.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Doctor Position */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Doctor Position *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Head, Department of Oncology"
+                                        value={docForm.position}
+                                        onChange={e => setDocForm({ ...docForm, position: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    />
+                                </div>
+
+                                {/* Doctor Degree */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Doctor Degree *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Mch. Surgical Oncology, Tata Memorial Hospital"
+                                        value={docForm.degree}
+                                        onChange={e => setDocForm({ ...docForm, degree: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    />
+                                </div>
+
+                                {/* Years of Experience (YoE) */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Years of Experience (YoE) *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. 22 Years or 15+ Years"
+                                        value={docForm.yoe}
+                                        onChange={e => setDocForm({ ...docForm, yoe: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    />
+                                </div>
+
+                                {/* Doctor Experience */}
+                                <div className="sm:grid-cols-2 lg:col-span-2">
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Doctor Experience Details / Timings *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. HPB - GI & Thoracic oncology · 9 AM–12 PM Daily"
+                                        value={docForm.experience}
+                                        onChange={e => setDocForm({ ...docForm, experience: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                    />
+                                </div>
+
+                                {/* Email & Password for new registrations */}
                                 {!editingDoctorId && (
                                     <>
-                                        <input
-                                            type="email" placeholder="Email *"
-                                            value={docForm.email} onChange={e => setDocForm({ ...docForm, email: e.target.value })}
-                                            className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
-                                        />
-                                        <input
-                                            type="password" placeholder="Password *"
-                                            value={docForm.password} onChange={e => setDocForm({ ...docForm, password: e.target.value })}
-                                            className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
-                                        />
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Doctor Email Address *</label>
+                                            <input
+                                                type="email"
+                                                placeholder="doctor@apex.com"
+                                                value={docForm.email}
+                                                onChange={e => setDocForm({ ...docForm, email: e.target.value })}
+                                                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Password *</label>
+                                            <input
+                                                type="password"
+                                                placeholder="Temporary login password"
+                                                value={docForm.password}
+                                                onChange={e => setDocForm({ ...docForm, password: e.target.value })}
+                                                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-teal-500 bg-white"
+                                            />
+                                        </div>
                                     </>
                                 )}
-                                <select
-                                    value={docForm.specialty} onChange={e => setDocForm({ ...docForm, specialty: e.target.value })}
-                                    className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 bg-white"
-                                >
-                                    <option value="">Specialty *</option>
-                                    <option>Medical Oncology</option>
-                                    <option>Surgical Oncology</option>
-                                    <option>Radiation Oncology</option>
-                                    <option>Hematology-Oncology</option>
-                                    <option>Pediatric Oncology</option>
-                                </select>
-                                <input
-                                    type="text" placeholder="Experience (e.g. 12 years)"
-                                    value={docForm.experience} onChange={e => setDocForm({ ...docForm, experience: e.target.value })}
-                                    className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
-                                />
-                                {editingDoctorId && (
-                                    <label className="flex items-center gap-2 text-sm text-slate-600 px-2">
+
+                                {/* Availability Toggle */}
+                                <div className="flex items-center pt-4">
+                                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
                                         <input
                                             type="checkbox"
                                             checked={docForm.available}
                                             onChange={e => setDocForm({ ...docForm, available: e.target.checked })}
-                                            className="w-4 h-4 rounded text-indigo-600"
+                                            className="w-4 h-4 rounded text-teal-600 accent-teal-600"
                                         />
-                                        Available / Active
+                                        <span>Available for Active Consultations</span>
                                     </label>
-                                )}
+                                </div>
                             </div>
-                            <div className="flex justify-end gap-2 mt-4">
+
+                            <div className="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-200">
                                 <button onClick={resetDoctorForm} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-200 rounded-xl transition-colors">Cancel</button>
                                 <button
                                     onClick={handleDoctorSave}
                                     disabled={docSaving}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                                    className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                                 >
                                     {docSaving ? "Saving..." : editingDoctorId ? "Update Doctor" : "Register Doctor"}
                                 </button>
@@ -1499,33 +1733,123 @@ export function AdminDashboard() {
                         </div>
                     )}
 
-                    {/* Doctor List */}
+                    {/* Doctor List Grouped by Department */}
                     {doctorsList.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 text-sm">No doctors registered yet.</div>
+                        <div className="text-center py-12 text-slate-400 text-sm">
+                            <Stethoscope size={32} className="mx-auto text-slate-300 mb-2" />
+                            No doctors registered yet. Click &quot;Sync Master Chart&quot; to seed all hospital specialists.
+                        </div>
                     ) : (
-                        <div className="divide-y divide-slate-50">
-                            {doctorsList.map(doc => (
-                                <div key={doc.id || doc._id} className="flex items-center gap-3 py-3">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                                        {doc.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                        <div className="space-y-6">
+                            {(() => {
+                                const filtered = doctorsList.filter(doc => {
+                                    if (selectedDepartmentFilter !== "all" && (doc.department || doc.specialty) !== selectedDepartmentFilter) {
+                                        return false;
+                                    }
+                                    if (doctorSearchQuery.trim()) {
+                                        const q = doctorSearchQuery.toLowerCase();
+                                        const matchName = doc.name?.toLowerCase().includes(q);
+                                        const matchDept = (doc.department || doc.specialty)?.toLowerCase().includes(q);
+                                        const matchPos = doc.position?.toLowerCase().includes(q);
+                                        const matchDeg = doc.degree?.toLowerCase().includes(q);
+                                        const matchExp = doc.experience?.toLowerCase().includes(q);
+                                        return matchName || matchDept || matchPos || matchDeg || matchExp;
+                                    }
+                                    return true;
+                                });
+
+                                if (filtered.length === 0) {
+                                    return (
+                                        <div className="text-center py-8 text-slate-400 text-sm">
+                                            No specialists match your filter criteria.
+                                        </div>
+                                    );
+                                }
+
+                                // Group by Department
+                                const grouped: Record<string, any[]> = {};
+                                filtered.forEach(d => {
+                                    const dept = d.department || d.specialty || "General Oncology";
+                                    if (!grouped[dept]) grouped[dept] = [];
+                                    grouped[dept].push(d);
+                                });
+
+                                return Object.entries(grouped).map(([dept, docs]) => (
+                                    <div key={dept} className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40">
+                                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-teal-600 inline-block" />
+                                                <h4 className="text-sm font-bold text-slate-800">{dept}</h4>
+                                                <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 font-semibold">
+                                                    {docs.length} {docs.length === 1 ? "Specialist" : "Specialists"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {docs.map(doc => (
+                                                <div key={doc.id || doc._id} className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs hover:border-teal-300 transition-all flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                                                    {doc.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-sm font-bold text-slate-900 leading-snug">{doc.name}</div>
+                                                                    <div className="text-xs font-semibold text-teal-700">{doc.position || "Specialist Consultant"}</div>
+                                                                    {doc.yoe && (
+                                                                        <span className="inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-200/60">
+                                                                            {doc.yoe} Exp
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${doc.available !== false ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                                                {doc.available !== false ? "Active" : "Offline"}
+                                                            </span>
+                                                        </div>
+
+                                                        {doc.degree && (
+                                                            <div className="text-xs text-slate-600 font-medium flex items-start gap-1.5 mt-2 bg-slate-50 p-2 rounded-lg">
+                                                                <GraduationCap size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                                                                <span className="leading-tight">{doc.degree}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {doc.experience && (
+                                                            <div className="text-xs text-slate-500 flex items-start gap-1.5 mt-1.5 px-1">
+                                                                <Clock size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                                                                <span className="leading-tight line-clamp-2">{doc.experience}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 text-xs">
+                                                        <span className="text-slate-400 truncate max-w-[150px]">{doc.email}</span>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            <button
+                                                                onClick={() => handleEditDoctor(doc)}
+                                                                className="px-2 py-1 text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors font-medium flex items-center gap-1"
+                                                                title="Edit Doctor Details"
+                                                            >
+                                                                <Edit3 size={12} /> Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteDoctor(doc.id || doc._id)}
+                                                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                                title="Remove Doctor"
+                                                            >
+                                                                <AlertTriangle size={13} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-semibold text-slate-700">{doc.name}</div>
-                                        <div className="text-xs text-slate-400">{doc.specialty || "No specialty"} · {doc.experience || "N/A"} · {doc.email}</div>
-                                    </div>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${doc.available !== false ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                                        {doc.available !== false ? "Active" : "Offline"}
-                                    </span>
-                                    <div className="flex items-center gap-0.5 shrink-0">
-                                        <button onClick={() => handleEditDoctor(doc)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
-                                            <Eye size={14} />
-                                        </button>
-                                        <button onClick={() => handleDeleteDoctor(doc.id || doc._id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Remove">
-                                            <AlertTriangle size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                ));
+                            })()}
                         </div>
                     )}
                 </div>

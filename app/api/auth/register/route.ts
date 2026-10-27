@@ -33,6 +33,9 @@ export async function POST(req: Request) {
       role,
       specialty,
       experience,
+      department,
+      position,
+      degree,
     } = body;
 
     if (!name || !email || !password) {
@@ -63,8 +66,11 @@ export async function POST(req: Request) {
       healthHistory,
       role: userRole,
       assignedDoctor: assignedDoc,
-      specialty,
-      experience,
+      specialty: specialty || department || "General Oncology",
+      experience: experience || "",
+      department: department || "Department of Oncology",
+      position: position || "Specialist Consultant",
+      degree: degree || "",
     });
 
     const token = jwt.sign(

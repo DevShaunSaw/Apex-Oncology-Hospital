@@ -30,9 +30,85 @@ export async function GET() {
     // Find profiles of these users
     const activeConversations = await User.find({ _id: { $in: uniqueIds } })
       .select("-password")
-      .populate("assignedDoctor", "name specialty");
+      .populate("assignedDoctor", "name specialty degree experience department position");
 
-    return NextResponse.json({ conversations: activeConversations });
+    // Special logic for patients:
+    // When a patient logs in, they should see Dr. Amit Gupta (active) and the Admin staff account (greyed out),
+    // plus any doctor they have chatted with (e.g. via referral/assignment).
+    if (decoded.role === "patient") {
+      // Find Dr. Amit Gupta
+      const drAmitGupta = await User.findOne({
+        $or: [
+          { email: "amitgupta@gmail.com" },
+          { name: { $regex: "Amit M. Gupta", $options: "i" } },
+          { name: { $regex: "Amit Gupta", $options: "i" }, position: { $regex: "Head", $options: "i" } },
+          { name: { $regex: "Amit Gupta", $options: "i" } },
+        ],
+        role: "doctor",
+      }).select("-password");
+
+      // Find Admin / Staff user
+      const adminUser = await User.findOne({ role: "admin" }).select("-password");
+
+      // Check current patient to see if an assignedDoctor exists
+      const currentPatient = await User.findById(myId).populate("assignedDoctor", "name specialty degree experience department position");
+      const assignedDoc = currentPatient?.assignedDoctor;
+
+      const conversationMap = new Map<string, any>();
+
+      // 1. Always place Dr. Amit Gupta first
+      if (drAmitGupta) {
+        const docObj = drAmitGupta.toObject();
+        docObj.id = docObj._id.toString();
+        conversationMap.set(docObj._id.toString(), docObj);
+      }
+
+      // 2. Add assigned doctor if different from Dr. Amit Gupta
+      if (assignedDoc && (assignedDoc as any)._id) {
+        const assignedObj = (assignedDoc as any).toObject ? (assignedDoc as any).toObject() : assignedDoc;
+        const assignedId = (assignedObj._id || assignedObj.id).toString();
+        if (!conversationMap.has(assignedId)) {
+          assignedObj.id = assignedId;
+          conversationMap.set(assignedId, assignedObj);
+        }
+      }
+
+      // 3. Add any other existing chat partners (from previous referrals/conversations)
+      for (const conv of activeConversations) {
+        const id = conv._id.toString();
+        if (!conversationMap.has(id)) {
+          const convObj = conv.toObject();
+          convObj.id = id;
+          conversationMap.set(id, convObj);
+        }
+      }
+
+      // 4. Add the Admin Staff Account (greyed out)
+      if (adminUser) {
+        const admObj = adminUser.toObject();
+        const admId = admObj._id.toString();
+        conversationMap.set(admId, {
+          ...admObj,
+          id: admId,
+          name: admObj.name || "Admin Staff Desk",
+          specialty: "Hospital Administration",
+          isGreyedOut: true,
+          isStaffAccount: true,
+          statusText: "Staff Panel (Coming Soon)",
+        });
+      }
+
+      const formatted = Array.from(conversationMap.values());
+      return NextResponse.json({ conversations: formatted });
+    }
+
+    const formatted = activeConversations.map((c: any) => {
+      const obj = c.toObject();
+      obj.id = obj._id.toString();
+      return obj;
+    });
+
+    return NextResponse.json({ conversations: formatted });
   } catch (error) {
     console.error("Conversations error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

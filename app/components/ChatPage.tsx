@@ -182,7 +182,7 @@ export default function ChatPage() {
 
         const fetchDoctorsList = async () => {
             try {
-                const res = await fetch("/api/users?role=doctor");
+                const res = await fetch("/api/users?role=doctor&all=true");
                 const data = await res.json();
                 if (data.users && Array.isArray(data.users) && data.users.length > 0) {
                     setAllDoctors(data.users);
@@ -210,7 +210,10 @@ export default function ChatPage() {
                 if (data.conversations) {
                     setConversations(data.conversations);
                     if (!activeChatPartner && data.conversations.length > 0) {
-                        setActiveChatPartner(data.conversations[0]);
+                        const defaultPartner = data.conversations.find((c: any) => !c.isGreyedOut) || data.conversations[0];
+                        if (defaultPartner && !defaultPartner.isGreyedOut) {
+                            setActiveChatPartner(defaultPartner);
+                        }
                     }
                 }
             } catch (error) {
@@ -236,10 +239,12 @@ export default function ChatPage() {
     // Fetch and poll messages with deduplication so we don't trigger unnecessary re-renders or scrolls
     useEffect(() => {
         if (!activeChatPartner) return;
+        const partnerId = activeChatPartner._id || activeChatPartner.id;
+        if (!partnerId) return;
 
         const fetchMessages = async () => {
             try {
-                const res = await fetch(`/api/chat/messages?userId=${activeChatPartner._id}`);
+                const res = await fetch(`/api/chat/messages?userId=${partnerId}`);
                 const data = await res.json();
                 if (data.messages && Array.isArray(data.messages)) {
                     setMessages((prev) => {
@@ -469,6 +474,9 @@ export default function ChatPage() {
 
     const send = async () => {
         if (!input.trim() || !activeChatPartner) return;
+        const partnerId = activeChatPartner._id || activeChatPartner.id;
+        if (!partnerId) return;
+
         const msgText = input;
         setInput("");
         if (textareaRef.current) {
@@ -481,7 +489,7 @@ export default function ChatPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    receiverId: activeChatPartner._id,
+                    receiverId: partnerId,
                     message: msgText,
                     type: "text",
                 }),
@@ -604,11 +612,12 @@ export default function ChatPage() {
                 const isVideo = uploadData.category === "video" || ["MP4", "WEBM", "MOV", "M4V"].includes(uploadData.fileType?.toUpperCase());
                 const validatedType = isImage ? "image" : isVideo ? "video" : "document";
 
+                const partnerId = activeChatPartner._id || activeChatPartner.id;
                 const msgRes = await fetch("/api/chat/messages", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        receiverId: activeChatPartner._id,
+                        receiverId: partnerId,
                         message: isImage ? `Shared image: ${uploadData.fileName}` : isVideo ? `Shared video: ${uploadData.fileName}` : `Shared file: ${uploadData.fileName}`,
                         type: validatedType,
                         fileName: uploadData.fileName,
@@ -729,17 +738,37 @@ export default function ChatPage() {
                             <div className="text-xs font-semibold text-slate-400 p-1 border-b border-slate-50 mb-1">
                                 {role === "patient" ? "Choose a Doctor" : "Choose a Patient"}
                             </div>
-                            {availableUsers.map((u) => (
-                                <button key={u._id} onClick={() => {
-                                    setActiveChatPartner(u);
-                                    setShowNewChatDropdown(false);
-                                    if (!conversations.some(c => c._id === u._id)) {
-                                        setConversations(prev => [u, ...prev]);
-                                    }
-                                }} className="w-full text-left px-2 py-1.5 rounded hover:bg-teal-50 text-xs font-medium text-slate-700 truncate block cursor-pointer">
-                                    {u.name} {u.specialty ? `(${u.specialty})` : ""}
-                                </button>
-                            ))}
+                            {availableUsers.map((u) => {
+                                const isGreyed = Boolean(u.isGreyedOut);
+                                return (
+                                    <button
+                                        key={u._id}
+                                        disabled={isGreyed}
+                                        onClick={() => {
+                                            if (isGreyed) return;
+                                            setActiveChatPartner(u);
+                                            setShowNewChatDropdown(false);
+                                            if (!conversations.some(c => c._id === u._id)) {
+                                                setConversations(prev => [u, ...prev]);
+                                            }
+                                        }}
+                                        className={`w-full text-left px-2 py-1.5 rounded text-xs font-medium truncate block ${
+                                            isGreyed
+                                                ? "opacity-50 cursor-not-allowed bg-slate-50 text-slate-400 select-none"
+                                                : "hover:bg-teal-50 text-slate-700 cursor-pointer"
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span>{u.name} {u.specialty ? `(${u.specialty})` : ""}</span>
+                                            {isGreyed && (
+                                                <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded font-semibold uppercase">
+                                                    Soon
+                                                </span>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                             {availableUsers.length === 0 && (
                                 <div className="text-slate-400 text-xs p-2 text-center">No registered contacts.</div>
                             )}
@@ -763,18 +792,48 @@ export default function ChatPage() {
 
                 <div className="flex-1 overflow-y-auto">
                     {filteredConversations.map((c) => {
-                        const active = activeChatPartner?._id === c._id;
+                        const isGreyed = Boolean(c.isGreyedOut);
+                        const active = activeChatPartner?._id === c._id && !isGreyed;
                         const initials = getInitials(c?.name);
                         return (
-                            <div key={c._id || c.id} onClick={() => setActiveChatPartner(c)}
-                                className={`p-4 flex items-start gap-3 cursor-pointer border-b border-slate-50 hover:bg-teal-50 transition-colors ${active ? "bg-teal-50 border-l-3 border-l-teal-600" : ""}`}>
-                                <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">{initials}</div>
+                            <div
+                                key={c._id || c.id}
+                                onClick={() => {
+                                    if (isGreyed) {
+                                        setToastMessage("Hospital Staff Panel is under development. Please chat directly with Dr. Amit Gupta.");
+                                        setTimeout(() => setToastMessage(null), 4000);
+                                        return;
+                                    }
+                                    setActiveChatPartner(c);
+                                }}
+                                className={`p-4 flex items-start gap-3 transition-colors ${
+                                    isGreyed
+                                        ? "opacity-60 cursor-not-allowed bg-slate-50/70 border-b border-dashed border-slate-200 select-none hover:bg-slate-50"
+                                        : active
+                                            ? "bg-teal-50 border-l-3 border-l-teal-600 cursor-pointer"
+                                            : "cursor-pointer border-b border-slate-50 hover:bg-teal-50"
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs ${
+                                    isGreyed ? "bg-slate-400" : "bg-teal-600"
+                                }`}>
+                                    {initials}
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-semibold text-slate-800 truncate">{c?.name || "User"}</span>
+                                        {isGreyed && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 uppercase tracking-wider shrink-0">
+                                                Unavailable
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="text-xs text-teal-600 font-medium truncate">{c?.specialty || (c?.role === "patient" ? "Patient" : "Support Team")}</div>
-                                    <div className="text-xs text-slate-400 truncate mt-0.5">{c?.city || "Online"}</div>
+                                    <div className={`text-xs font-medium truncate ${isGreyed ? "text-slate-500" : "text-teal-600"}`}>
+                                        {isGreyed ? "Admin Staff Desk" : (c?.position || c?.specialty || (c?.role === "patient" ? "Patient" : "Support Team"))}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                        {isGreyed ? "Staff Panel Coming Soon" : (c?.department || c?.city || "Online")}
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -1562,13 +1621,15 @@ export default function ChatPage() {
                                         }
                                     }}
                                     placeholder={
-                                        uploading
-                                            ? "Uploading file..."
-                                            : role === "doctor"
-                                                ? "Type a message or '@' to refer a doctor..."
-                                                : "Type a message..."
+                                        activeChatPartner?.isGreyedOut
+                                            ? "Staff messaging is disabled. Please chat with Dr. Amit Gupta."
+                                            : uploading
+                                                ? "Uploading file..."
+                                                : role === "doctor"
+                                                    ? "Type a message or '@' to refer a doctor..."
+                                                    : "Type a message to Dr. Amit Gupta..."
                                     }
-                                    disabled={uploading}
+                                    disabled={uploading || Boolean(activeChatPartner?.isGreyedOut)}
                                     style={{ height: "40px" }}
                                     className="block w-full min-h-[40px] max-h-32 border border-slate-200 rounded-xl px-4 py-2.5 text-sm leading-5 resize-none focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50 bg-slate-50/40 focus:bg-white transition-all placeholder:text-slate-400"
                                 />
@@ -1576,7 +1637,7 @@ export default function ChatPage() {
                             <button
                                 type="button"
                                 onClick={send}
-                                disabled={uploading || !input.trim()}
+                                disabled={uploading || !input.trim() || Boolean(activeChatPartner?.isGreyedOut)}
                                 className="w-10 h-10 flex items-center justify-center bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
                                 title="Send message"
                             >
@@ -1681,23 +1742,41 @@ export default function ChatPage() {
                                     {role === "patient" ? "Choose an Oncologist" : "Choose a Patient"}
                                 </div>
                                 <div className="space-y-1">
-                                    {availableUsers.map((u) => (
-                                        <button
-                                            key={u._id}
-                                            onClick={() => {
-                                                setActiveChatPartner(u);
-                                                setShowNewChatDropdown(false);
-                                                setShowMobileConversations(false);
-                                                if (!conversations.some(c => c._id === u._id)) {
-                                                    setConversations(prev => [u, ...prev]);
-                                                }
-                                            }}
-                                            className="w-full text-left px-2.5 py-2 rounded-xl bg-white hover:bg-teal-100 text-xs font-semibold text-slate-800 truncate block border border-teal-100/60 shadow-xs cursor-pointer"
-                                        >
-                                            <div>{u.name}</div>
-                                            <div className="text-[10px] text-teal-600 font-normal">{u.specialty || (u.role === "patient" ? "Patient" : "Support")}</div>
-                                        </button>
-                                    ))}
+                                    {availableUsers.map((u) => {
+                                        const isGreyed = Boolean(u.isGreyedOut);
+                                        return (
+                                            <button
+                                                key={u._id}
+                                                disabled={isGreyed}
+                                                onClick={() => {
+                                                    if (isGreyed) return;
+                                                    setActiveChatPartner(u);
+                                                    setShowNewChatDropdown(false);
+                                                    setShowMobileConversations(false);
+                                                    if (!conversations.some(c => c._id === u._id)) {
+                                                        setConversations(prev => [u, ...prev]);
+                                                    }
+                                                }}
+                                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold truncate block border transition-all ${
+                                                    isGreyed
+                                                        ? "opacity-50 cursor-not-allowed bg-slate-50 text-slate-400 border-slate-200 select-none"
+                                                        : "bg-white hover:bg-teal-100 text-slate-800 border-teal-100/60 shadow-xs cursor-pointer"
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span>{u.name}</span>
+                                                    {isGreyed && (
+                                                        <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded font-semibold uppercase">
+                                                            Soon
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className={`text-[10px] font-normal ${isGreyed ? "text-slate-400" : "text-teal-600"}`}>
+                                                    {isGreyed ? "Staff Panel Coming Soon" : (u.specialty || (u.role === "patient" ? "Patient" : "Support"))}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                     {availableUsers.length === 0 && (
                                         <div className="text-slate-400 text-xs p-2 text-center">No registered contacts.</div>
                                     )}
@@ -1722,27 +1801,49 @@ export default function ChatPage() {
                         {/* Conversations List */}
                         <div className="flex-1 overflow-y-auto">
                             {filteredConversations.map((c) => {
-                                const active = activeChatPartner?._id === c._id;
+                                const isGreyed = Boolean(c.isGreyedOut);
+                                const active = activeChatPartner?._id === c._id && !isGreyed;
                                 const initials = getInitials(c?.name);
                                 return (
                                     <div
                                         key={c._id || c.id}
                                         onClick={() => {
+                                            if (isGreyed) {
+                                                setToastMessage("Hospital Staff Panel is under development. Please chat directly with Dr. Amit Gupta.");
+                                                setTimeout(() => setToastMessage(null), 4000);
+                                                return;
+                                            }
                                             setActiveChatPartner(c);
                                             setShowMobileConversations(false);
                                         }}
-                                        className={`p-3.5 flex items-start gap-3 cursor-pointer border-b border-slate-50 hover:bg-teal-50/60 transition-colors ${active ? "bg-teal-50 border-l-3 border-l-teal-600" : ""
-                                            }`}
+                                        className={`p-3.5 flex items-start gap-3 border-b transition-colors ${
+                                            isGreyed
+                                                ? "opacity-60 cursor-not-allowed bg-slate-50/70 border-dashed border-slate-200 select-none hover:bg-slate-50"
+                                                : active
+                                                    ? "bg-teal-50 border-l-3 border-l-teal-600 cursor-pointer"
+                                                    : "cursor-pointer border-slate-50 hover:bg-teal-50/60"
+                                        }`}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs ${
+                                            isGreyed ? "bg-slate-400" : "bg-teal-600"
+                                        }`}>
                                             {initials}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm font-semibold text-slate-800 truncate">{c?.name || "User"}</span>
+                                                {isGreyed && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 uppercase tracking-wider shrink-0">
+                                                        Unavailable
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="text-xs text-teal-600 font-medium truncate">{c?.specialty || (c?.role === "patient" ? "Patient" : "Support Team")}</div>
-                                            <div className="text-[11px] text-slate-400 truncate mt-0.5">{c?.city || "Online"}</div>
+                                            <div className={`text-xs font-medium truncate ${isGreyed ? "text-slate-500" : "text-teal-600"}`}>
+                                                {isGreyed ? "Admin Staff Desk" : (c?.position || c?.specialty || (c?.role === "patient" ? "Patient" : "Support Team"))}
+                                            </div>
+                                            <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                                {isGreyed ? "Staff Panel Coming Soon" : (c?.department || c?.city || "Online")}
+                                            </div>
                                         </div>
                                     </div>
                                 );

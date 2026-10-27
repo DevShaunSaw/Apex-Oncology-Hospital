@@ -8,6 +8,8 @@ import {
     Heart, Thermometer, Droplets, Zap, FileText, Eye, Clock,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import VitalsHistoryModal from "./VitalsHistoryModal";
+import { formatVitalsTimestamp } from "@/lib/dateTime";
 
 export interface Vitals {
     bp?: string;
@@ -133,6 +135,7 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
     const cyclePercent = Math.round((cycleCurrent / cycleTotal) * 100);
 
     const [isEditingVitals, setIsEditingVitals] = useState(false);
+    const [showVitalsHistory, setShowVitalsHistory] = useState(false);
     const [currentVitals, setCurrentVitals] = useState<Vitals>(patient.vitals || {});
     const [editBp, setEditBp] = useState(patient.vitals?.bp || "");
     const [editPulse, setEditPulse] = useState(patient.vitals?.pulse || "");
@@ -227,22 +230,31 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
                                     </h3>
                                     {currentVitals?.lastUpdated && (
                                         <div className="text-[10px] text-slate-400 mt-0.5 ml-5">
-                                            Recorded: {currentVitals.lastUpdated}
+                                            Recorded: {formatVitalsTimestamp(currentVitals.lastUpdated, currentVitals.updatedAt)}
                                         </div>
                                     )}
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setIsEditingVitals(!isEditingVitals);
-                                        setEditBp(currentVitals?.bp || "");
-                                        setEditPulse(currentVitals?.pulse || "");
-                                        setEditTemp(currentVitals?.temp || "");
-                                        setEditWeight(currentVitals?.weight || "");
-                                    }}
-                                    className="text-xs text-teal-700 hover:text-teal-800 font-semibold bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors border border-teal-200"
-                                >
-                                    {isEditingVitals ? "Cancel Edit" : "Update Vitals"}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowVitalsHistory(true)}
+                                        className="text-xs text-teal-700 hover:text-teal-900 font-semibold bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors border border-teal-200 flex items-center gap-1 cursor-pointer shadow-2xs"
+                                    >
+                                        <Clock size={11} /> View History
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsEditingVitals(!isEditingVitals);
+                                            setEditBp(currentVitals?.bp || "");
+                                            setEditPulse(currentVitals?.pulse || "");
+                                            setEditTemp(currentVitals?.temp || "");
+                                            setEditWeight(currentVitals?.weight || "");
+                                        }}
+                                        className="text-xs text-teal-700 hover:text-teal-800 font-semibold bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors border border-teal-200 cursor-pointer"
+                                    >
+                                        {isEditingVitals ? "Cancel Edit" : "Update Vitals"}
+                                    </button>
+                                </div>
                             </div>
 
                             {statusFeedback && (
@@ -393,14 +405,17 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
                                             const d = new Date(s.createdAt);
                                             if (!isNaN(d.getTime())) {
                                                 dayDate = d.toLocaleDateString("en-US", {
+                                                    timeZone: "Asia/Kolkata",
                                                     weekday: "short",
                                                     month: "short",
                                                     day: "numeric",
                                                 });
                                                 time = d.toLocaleTimeString("en-US", {
+                                                    timeZone: "Asia/Kolkata",
                                                     hour: "2-digit",
                                                     minute: "2-digit",
-                                                });
+                                                    hour12: true,
+                                                }) + " IST";
                                             }
                                         } catch (e) {}
                                     } else if (s.date && s.date.includes("•")) {
@@ -482,6 +497,21 @@ function PatientDetailModal({ patient, onClose, onChat, onBookAppointment, onVit
                     </button>
                 </div>
             </div>
+
+            {/* Vitals History Modal */}
+            <VitalsHistoryModal
+                isOpen={showVitalsHistory}
+                onClose={() => setShowVitalsHistory(false)}
+                patientId={patient._id || patient.id}
+                patientName={patient.name}
+                currentVitals={currentVitals}
+                canAddVitals={true}
+                onVitalsRecorded={(savedVitals) => {
+                    setCurrentVitals(savedVitals);
+                    const pid = patient._id || patient.id;
+                    if (pid) onVitalsUpdated?.(pid, savedVitals);
+                }}
+            />
         </div>
     );
 }

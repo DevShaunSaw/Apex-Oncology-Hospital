@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useApp } from "../context/AppContext";
-import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight, ArrowLeft, ShieldCheck, Loader2 } from "lucide-react";
 
 export function RegisterPage() {
     const { setPage, register } = useApp();
@@ -186,24 +186,31 @@ export function LoginPage() {
     const { login, setPage } = useApp();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [selectedRole, setSelectedRole] = useState<"patient" | "doctor" | "admin">("patient");
+    const [selectedRole, setSelectedRole] = useState<"patient" | "staff">("patient");
     const [show, setShow] = useState(false);
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleLogin = async () => {
+    const handleLogin = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!email || !password) {
             setError("Email and password are required.");
             return;
         }
         setError("");
-        const res = await login(email, password, selectedRole);
-        if (!res.success) {
-            setError(res.error || "Login failed.");
+        setIsSubmitting(true);
+        try {
+            const res = await login(email, password, selectedRole);
+            if (!res.success) {
+                setError(res.error || "Login failed.");
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex flex-col items-center justify-center px-4 relative">
+        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex flex-col items-center justify-center px-4 relative py-12">
             <div className="w-full max-w-sm mb-4 flex items-center justify-start">
                 <Link
                     href="/"
@@ -214,49 +221,125 @@ export function LoginPage() {
                 </Link>
             </div>
             <div className="w-full max-w-sm">
-                <div className="text-center mb-8">
+                <div className="text-center mb-6">
                     <h1 className="text-3xl font-display text-teal-900">Welcome Back</h1>
-                    <p className="text-slate-500 mt-1 text-sm">Sign in to your care dashboard</p>
+                    <p className="text-slate-500 mt-1 text-sm">
+                        {selectedRole === "patient"
+                            ? "Sign in to your patient care dashboard"
+                            : "Hospital staff portal (Doctor & Admin sign in)"}
+                    </p>
                 </div>
                 <div className="bg-white rounded-2xl shadow-card border border-slate-100 p-6">
                     {error && (
-                        <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs mb-4">
+                        <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-xs mb-4">
                             {error}
                         </div>
                     )}
-                    {/* Demo Role Selector */}
-                    <div className="flex bg-slate-100 rounded-xl p-1 mb-5">
-                        {(["patient", "doctor", "admin"] as const).map(r => (
-                            <button key={r} onClick={() => setSelectedRole(r)}
-                                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${selectedRole === r ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>
-                                {r}
-                            </button>
-                        ))}
+
+                    {/* RBAC Portal Selector: Patient vs Staff */}
+                    <div className="flex bg-slate-100/90 rounded-xl p-1 mb-5 border border-slate-200/50">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedRole("patient");
+                                setError("");
+                            }}
+                            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                                selectedRole === "patient"
+                                    ? "bg-white text-teal-800 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                            }`}
+                        >
+                            <User size={14} className={selectedRole === "patient" ? "text-teal-600" : "text-slate-400"} />
+                            <span>Patient</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedRole("staff");
+                                setError("");
+                            }}
+                            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                                selectedRole === "staff"
+                                    ? "bg-white text-teal-800 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                            }`}
+                        >
+                            <ShieldCheck size={14} className={selectedRole === "staff" ? "text-teal-600" : "text-slate-400"} />
+                            <span>Staff</span>
+                        </button>
                     </div>
-                    <div className="space-y-4">
+
+                    <form onSubmit={handleLogin} className="space-y-4">
                         <div className="relative">
                             <Mail size={16} className="absolute left-3 top-3.5 text-slate-400" />
-                            <input type="email" className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
-                                placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
+                            <input
+                                type="email"
+                                required
+                                className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
+                                placeholder={selectedRole === "patient" ? "Patient Email Address" : "Staff Email Address"}
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
                         </div>
                         <div className="relative">
                             <Lock size={16} className="absolute left-3 top-3.5 text-slate-400" />
-                            <input type={show ? "text" : "password"} className="w-full pl-9 pr-10 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
-                                placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-                            <button onClick={() => setShow(!show)} className="absolute right-3 top-3.5 text-slate-400">{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                            <input
+                                type={show ? "text" : "password"}
+                                required
+                                className="w-full pl-9 pr-10 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
+                                placeholder="Password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShow(!show)}
+                                className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                            >
+                                {show ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
                         </div>
-                        <div className="flex justify-end"><button className="text-teal-600 text-xs hover:underline">Forgot password?</button></div>
-                        <button onClick={handleLogin} className="w-full bg-teal-600 text-white py-3 rounded-xl font-semibold hover:bg-teal-700 transition-colors">
-                            Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
+                        <div className="flex justify-end">
+                            <Link
+                                href="/reset-password"
+                                onClick={() => setPage("reset-password")}
+                                className="text-teal-600 text-xs hover:underline font-medium"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-teal-600 text-white py-3 rounded-xl font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Signing in...</span>
+                                </>
+                            ) : (
+                                <span>Sign In as {selectedRole === "patient" ? "Patient" : "Staff"}</span>
+                            )}
                         </button>
-                    </div>
+                    </form>
                 </div>
-                <p className="text-center text-sm text-slate-500 mt-4">
-                    New to Apex?{" "}
-                    <Link href="/register" onClick={() => setPage("register")} className="text-teal-600 font-medium hover:underline">
-                        Register now
-                    </Link>
-                </p>
+
+                {/* Only display Register link when Patient is selected */}
+                {selectedRole === "patient" && (
+                    <p className="text-center text-sm text-slate-500 mt-4 transition-all">
+                        New to Apex?{" "}
+                        <Link href="/register" onClick={() => setPage("register")} className="text-teal-600 font-medium hover:underline">
+                            Register now
+                        </Link>
+                    </p>
+                )}
+                {selectedRole === "staff" && (
+                    <p className="text-center text-xs text-slate-400 mt-4">
+                        Hospital staff accounts are issued and managed by administration.
+                    </p>
+                )}
             </div>
         </div>
     );

@@ -18,8 +18,12 @@ const UserSchema = new mongoose.Schema(
       default: "patient",
     },
     // Doctor specific fields
-    specialty: { type: String },
-    experience: { type: String },
+    department: { type: String, default: "Department of Oncology" },
+    position: { type: String, default: "Specialist Consultant" },
+    degree: { type: String, default: "" },
+    specialty: { type: String, default: "" },
+    experience: { type: String, default: "" },
+    yoe: { type: String, default: "" },
     rating: { type: Number, default: 4.8 },
     available: { type: Boolean, default: true },
 
@@ -41,6 +45,18 @@ const UserSchema = new mongoose.Schema(
       lastUpdated: { type: String, default: "" },
       updatedAt: { type: Date }
     },
+    vitalsHistory: [
+      {
+        bp: { type: String, default: "" },
+        temp: { type: String, default: "" },
+        pulse: { type: String, default: "" },
+        weight: { type: String, default: "" },
+        lastUpdated: { type: String, default: "" },
+        recordedAt: { type: Date, default: Date.now },
+        recordedBy: { type: String, default: "Clinical Team" },
+        notes: { type: String, default: "" }
+      }
+    ],
     labTrends: [
       {
         label: { type: String },

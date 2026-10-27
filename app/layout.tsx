@@ -6,13 +6,13 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import NotificationPromptBanner from "./components/NotificationPromptBanner";
 
 export const metadata: Metadata = {
-  title: "Apex — Integrated Oncology Platform",
-  description: "Expert cancer care with science and compassion.",
+  title: "Apex Connect — Unified Healthcare Platform",
+  description: "Bringing Advanced Treatment and Holistic Healing Under One Roof. Apex Superspeciality Cancer Hospital, Apex Diagnostics, and Apex Rehabilitation Service.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Apex",
+    title: "Apex Connect",
   },
   icons: {
     apple: "/icons/icon-192x192.png",
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Apex" />
+        <meta name="apple-mobile-web-app-title" content="Apex Connect" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body>

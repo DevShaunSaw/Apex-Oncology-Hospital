@@ -28,20 +28,30 @@ export default function PackagesPage() {
     const { setPage } = useApp();
     return (
         <div className="min-h-screen bg-slate-50">
-            <div className="bg-gradient-to-br from-teal-900 to-teal-700 text-white py-16 px-4 text-center">
-                <h1 className="text-4xl sm:text-5xl font-display mb-3">Care Packages</h1>
-                <p className="text-teal-200 max-w-xl mx-auto">Transparent pricing. Comprehensive coverage. Choose the plan that matches your care needs.</p>
+            <div className="bg-gradient-to-br from-teal-900 via-teal-800 to-teal-700 text-white py-16 px-4 text-center">
+                <div className="inline-flex items-center gap-2 bg-teal-700/60 border border-teal-500/40 rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-wider text-teal-200 mb-3">
+                    🔬 Exclusively Under Apex Diagnostics
+                </div>
+                <h1 className="text-4xl sm:text-5xl font-display mb-3">Apex Diagnostics Packages</h1>
+                <p className="text-teal-100 max-w-2xl mx-auto text-base">
+                    Comprehensive pathology, high-resolution radiology, and preventative oncological screening panels — backed by NABL accreditation and state-of-the-art imaging.
+                </p>
+                <div className="mt-3 text-xs text-teal-300">
+                    * All healthcare packages are exclusively provided and fulfilled by <strong>Apex Diagnostics</strong>.
+                </div>
             </div>
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
                 {/* Doctor Suggests callout */}
                 <div className="bg-teal-50 border border-teal-200 rounded-2xl p-5 mb-10 flex items-start gap-4">
-                    <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center shrink-0 text-white">
+                    <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center shrink-0 text-white shadow-xs">
                         <Zap size={18} />
                     </div>
                     <div>
-                        <div className="font-semibold text-teal-800">Doctor Recommendation</div>
-                        <p className="text-teal-600 text-sm mt-0.5">Based on your diagnosis (Breast Cancer — Stage II), <strong>Dr. Priya Sharma</strong> recommends the <strong>Care Plus</strong> or <strong>Comprehensive Heal</strong> package for full treatment coverage.</p>
+                        <div className="font-semibold text-teal-900">Clinical Diagnostics Recommendation</div>
+                        <p className="text-teal-700 text-sm mt-0.5">
+                            For routine and preventative oncology screening, our specialists recommend the <strong>Care Plus Diagnostic Panel</strong> or the <strong>Comprehensive Heal &amp; PET-CT Profile</strong> for complete peace of mind.
+                        </p>
                     </div>
                 </div>
 

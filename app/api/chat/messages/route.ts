@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     const myId = decoded.id;
 
     // Verify sender is not blocked
-    const senderUser = await User.findById(myId).select("isBlocked blockedReason");
+    const senderUser = await User.findById(myId).select("role isBlocked blockedReason");
     if (senderUser?.isBlocked) {
       return NextResponse.json(
         { error: "Forbidden: Your account has been suspended from using chat.", blocked: true, reason: senderUser.blockedReason },
@@ -68,9 +68,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing receiverId" }, { status: 400 });
     }
 
+    // Verify receiver is not admin if sender is patient (staff panel coming soon, admin chat greyed out)
+    const receiverUser = await User.findById(receiverId).select("role name");
+    if (senderUser?.role === "patient" && receiverUser?.role === "admin") {
+      return NextResponse.json(
+        { error: "Hospital Staff Panel is under development. Direct messaging with administration is currently disabled. Please chat directly with Dr. Amit Gupta." },
+        { status: 403 }
+      );
+    }
+
     const formattedTime = new Date().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Kolkata",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true,
     });
 
     const newMsg = await Message.create({

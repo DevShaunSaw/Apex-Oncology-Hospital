@@ -1,7 +1,7 @@
 {
-  "name": "Apex",
-  "short_name": "Apex",
-  "description": "Integrated Oncology Platform — Expert cancer care with science and compassion.",
+  "name": "Apex Connect",
+  "short_name": "Apex Connect",
+  "description": "Apex Connect — Unified Healthcare Ecosystem for Apex Superspeciality Cancer Hospital, Apex Diagnostics, and Apex Rehabilitation Service.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#4B2977",

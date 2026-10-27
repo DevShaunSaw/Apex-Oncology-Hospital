@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { doctorPatients } from "@/app/data/mockData";
 
+import { formatToISTDateTime } from "@/lib/dateTime";
+
 export async function GET(req: NextRequest) {
     try {
         await connectToDatabase();
@@ -107,10 +109,20 @@ export async function GET(req: NextRequest) {
         // Fetch patients
         const dbPatients = await User.find(query);
 
-        // Map to plain objects
+        // Map to plain objects and normalize vitals to IST
         let patients = dbPatients.map(p => {
             const obj = p.toObject();
             obj.id = obj._id.toString(); // Ensure compatibility with client-side code expecting 'id'
+            if (obj.vitals) {
+                if (obj.vitals.updatedAt) {
+                    obj.vitals.lastUpdated = formatToISTDateTime(obj.vitals.updatedAt);
+                } else if (obj.vitals.lastUpdated && !obj.vitals.lastUpdated.includes("IST")) {
+                    const parsed = new Date(obj.vitals.lastUpdated);
+                    if (!isNaN(parsed.getTime())) {
+                        obj.vitals.lastUpdated = formatToISTDateTime(parsed);
+                    }
+                }
+            }
             return obj;
         });
 

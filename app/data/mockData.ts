@@ -110,7 +110,11 @@ export const patientProfile = {
         { date: "May 12", symptom: "Fatigue", severity: "Moderate" },
         { date: "May 10", symptom: "Hair thinning", severity: "Low" },
     ],
-    vitals: { bp: "118/76", weight: "62 kg", temp: "98.4°F", lastUpdated: "May 15, 2024" },
+    vitals: { bp: "118/76", pulse: "72 bpm", weight: "62 kg", temp: "98.4°F", lastUpdated: "Oct 26, 2026, 01:30 PM IST" },
+    vitalsHistory: [
+        { bp: "118/76", pulse: "72 bpm", temp: "98.4°F", weight: "62 kg", lastUpdated: "Oct 26, 2026, 01:30 PM IST", recordedBy: "Dr. Rajeev Wagle", notes: "Stable baseline vitals" },
+        { bp: "122/80", pulse: "76 bpm", temp: "98.6°F", weight: "62.5 kg", lastUpdated: "Oct 19, 2026, 11:15 AM IST", recordedBy: "Oncology Care Team", notes: "Post-infusion checkup" }
+    ],
 };
 
 export const languages = [
@@ -137,8 +141,13 @@ export const doctorPatients = [
             bp: "118/76",
             temp: "98.4°F",
             pulse: "72 bpm",
-            weight: "62 kg"
+            weight: "62 kg",
+            lastUpdated: "Oct 26, 2026, 01:25 PM IST"
         },
+        vitalsHistory: [
+            { bp: "118/76", temp: "98.4°F", pulse: "72 bpm", weight: "62 kg", lastUpdated: "Oct 26, 2026, 01:25 PM IST", recordedBy: "Dr. Priya Sharma", notes: "Stable BP and pulse, good tolerance." },
+            { bp: "120/78", temp: "98.6°F", pulse: "74 bpm", weight: "62.2 kg", lastUpdated: "Oct 19, 2026, 10:45 AM IST", recordedBy: "Oncology Care Team", notes: "Pre-chemo cycle routine vitals." }
+        ],
         labTrends: [
             { label: "Hemoglobin", value: "11.2 g/dL", status: "low" },
             { label: "WBC", value: "4.5 k/uL", status: "normal" },
@@ -179,8 +188,12 @@ export const doctorPatients = [
             bp: "124/80",
             temp: "98.6°F",
             pulse: "68 bpm",
-            weight: "74 kg"
+            weight: "74 kg",
+            lastUpdated: "Oct 26, 2026, 12:15 PM IST"
         },
+        vitalsHistory: [
+            { bp: "124/80", temp: "98.6°F", pulse: "68 bpm", weight: "74 kg", lastUpdated: "Oct 26, 2026, 12:15 PM IST", recordedBy: "Dr. Priya Sharma", notes: "Post-op surveillance vitals clear." }
+        ],
         labTrends: [
             { label: "CEA Marker", value: "1.8 ng/mL", status: "normal" },
             { label: "WBC", value: "6.2 k/uL", status: "normal" }
@@ -217,8 +230,13 @@ export const doctorPatients = [
             bp: "110/70",
             temp: "99.1°F",
             pulse: "82 bpm",
-            weight: "58 kg"
+            weight: "58 kg",
+            lastUpdated: "Oct 26, 2026, 01:10 PM IST"
         },
+        vitalsHistory: [
+            { bp: "110/70", temp: "99.1°F", pulse: "82 bpm", weight: "58 kg", lastUpdated: "Oct 26, 2026, 01:10 PM IST", recordedBy: "Dr. Priya Sharma", notes: "Mild pyrexia noted, monitor temperature." },
+            { bp: "112/72", temp: "98.8°F", pulse: "80 bpm", weight: "58.4 kg", lastUpdated: "Oct 22, 2026, 09:30 AM IST", recordedBy: "Oncology Care Team", notes: "Routine ward observation." }
+        ],
         labTrends: [
             { label: "Hemoglobin", value: "10.5 g/dL", status: "low" },
             { label: "WBC", value: "2.1 k/uL", status: "critical" }
@@ -258,8 +276,12 @@ export const doctorPatients = [
             bp: "130/82",
             temp: "98.2°F",
             pulse: "70 bpm",
-            weight: "81 kg"
+            weight: "81 kg",
+            lastUpdated: "Oct 25, 2026, 04:40 PM IST"
         },
+        vitalsHistory: [
+            { bp: "130/82", temp: "98.2°F", pulse: "70 bpm", weight: "81 kg", lastUpdated: "Oct 25, 2026, 04:40 PM IST", recordedBy: "Dr. Priya Sharma", notes: "Hormone therapy ongoing. Vitals normal." }
+        ],
         labTrends: [
             { label: "PSA Marker", value: "0.4 ng/mL", status: "normal" },
             { label: "Hemoglobin", value: "13.8 g/dL", status: "normal" }

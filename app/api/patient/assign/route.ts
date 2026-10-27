@@ -60,8 +60,10 @@ export async function POST(req: NextRequest) {
         let systemMessage = null;
         if (decoded.role === "doctor" && targetDoctorId) {
             const formattedTime = new Date().toLocaleTimeString("en-US", {
+                timeZone: "Asia/Kolkata",
                 hour: "2-digit",
                 minute: "2-digit",
+                hour12: true,
             });
             const doctorName = assignedDoctorUser?.name || "Doctor";
             const doctorDisplayName = doctorName.startsWith("Dr.") ? doctorName : `Dr. ${doctorName}`;

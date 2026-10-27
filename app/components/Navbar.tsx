@@ -37,8 +37,8 @@ interface NavItem {
 
 const navLinks: NavItem[] = [
     { label: "Home", page: "home", href: "/" },
-    { label: "Services", page: "services", href: "/services" },
-    { label: "Packages", page: "packages", href: "/packages" },
+    { label: "Services & Doctors", page: "services", href: "/services" },
+    { label: "Diagnostic Packages", page: "packages", href: "/packages" },
     { label: "Events", page: "events", href: "/events" },
     { label: "About Us", page: "about", href: "/about" },
 ];
@@ -184,7 +184,7 @@ export default function Navbar() {
                             >
                                 {/* Desktop Dimension Logo */}
                                 <Image
-                                    src="/apex-logo.png"
+                                    src="/apex-logo-2.png"
                                     alt="Apex Onco Care"
                                     width={128}
                                     height={40}
@@ -212,11 +212,10 @@ export default function Navbar() {
                                         key={l.page}
                                         href={l.href}
                                         onClick={() => setPage(l.page)}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                            active
-                                                ? "bg-teal-50 text-teal-700 shadow-xs font-semibold"
-                                                : "text-slate-600 hover:text-teal-700 hover:bg-teal-50"
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${active
+                                            ? "bg-teal-50 text-teal-700 shadow-xs font-semibold"
+                                            : "text-slate-600 hover:text-teal-700 hover:bg-teal-50"
+                                            }`}
                                     >
                                         {l.label}
                                     </Link>
@@ -243,9 +242,8 @@ export default function Navbar() {
                                             <button
                                                 key={l.code}
                                                 onClick={() => { setLang(l.code); setLangOpen(false); }}
-                                                className={`w-full flex items-center justify-between text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                                                    lang === l.code ? "bg-teal-50 text-teal-700" : "text-slate-600 hover:bg-slate-50"
-                                                }`}
+                                                className={`w-full flex items-center justify-between text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${lang === l.code ? "bg-teal-50 text-teal-700" : "text-slate-600 hover:bg-slate-50"
+                                                    }`}
                                             >
                                                 <span>{l.label}</span>
                                                 {lang === l.code && <Check size={12} className="text-teal-600" />}
@@ -265,11 +263,10 @@ export default function Navbar() {
                                 >
                                     <Bell size={17} />
                                     <span
-                                        className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${
-                                            isSubscribed
-                                                ? "bg-emerald-500 ring-2 ring-white"
-                                                : "bg-amber-400 animate-pulse"
-                                        }`}
+                                        className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${isSubscribed
+                                            ? "bg-emerald-500 ring-2 ring-white"
+                                            : "bg-amber-400 animate-pulse"
+                                            }`}
                                     ></span>
                                 </button>
                             )}
@@ -328,18 +325,16 @@ export default function Navbar() {
             {/* Mobile Hamburger Drawer Opening from the Left */}
             {/* Backdrop overlay */}
             <div
-                className={`fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300 md:hidden ${
-                    menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-                }`}
+                className={`fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300 md:hidden ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                    }`}
                 onClick={() => setMenuOpen(false)}
                 aria-hidden={!menuOpen}
             />
 
             {/* Slide-over Drawer Panel */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden ${
-                    menuOpen ? "translate-x-0" : "-translate-x-full"
-                }`}
+                className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
                 aria-label="Mobile Navigation Menu"
             >
                 {/* Drawer Header */}
@@ -354,7 +349,7 @@ export default function Navbar() {
                         className="flex items-center shrink-0"
                     >
                         <Image
-                            src="/apex-logo.png"
+                            src="/apex-logo-2.png"
                             alt="Apex Onco Care"
                             width={120}
                             height={36}
@@ -435,11 +430,10 @@ export default function Navbar() {
                                             setPage(l.page);
                                             setMenuOpen(false);
                                         }}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                                            active
-                                                ? "bg-teal-50 text-teal-800 font-semibold shadow-xs border-l-4 border-teal-600"
-                                                : "text-slate-600 hover:text-teal-700 hover:bg-slate-50"
-                                        }`}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
+                                            ? "bg-teal-50 text-teal-800 font-semibold shadow-xs border-l-4 border-teal-600"
+                                            : "text-slate-600 hover:text-teal-700 hover:bg-slate-50"
+                                            }`}
                                     >
                                         <Icon size={18} className={active ? "text-teal-700" : "text-slate-400"} />
                                         <span className="flex-1">{l.label}</span>
@@ -480,9 +474,8 @@ export default function Navbar() {
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span
-                                        className={`w-2.5 h-2.5 rounded-full ${
-                                            isSubscribed ? "bg-emerald-500 ring-2 ring-emerald-200" : "bg-amber-400 animate-pulse"
-                                        }`}
+                                        className={`w-2.5 h-2.5 rounded-full ${isSubscribed ? "bg-emerald-500 ring-2 ring-emerald-200" : "bg-amber-400 animate-pulse"
+                                            }`}
                                     ></span>
                                     <span className="text-[11px] font-semibold text-teal-700">
                                         Open
@@ -506,11 +499,10 @@ export default function Navbar() {
                                         key={l.code}
                                         type="button"
                                         onClick={() => setLang(l.code)}
-                                        className={`py-2 px-2 rounded-xl text-xs font-medium transition-all text-center cursor-pointer ${
-                                            isSelected
-                                                ? "bg-teal-600 text-white font-semibold shadow-xs"
-                                                : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70"
-                                        }`}
+                                        className={`py-2 px-2 rounded-xl text-xs font-medium transition-all text-center cursor-pointer ${isSelected
+                                            ? "bg-teal-600 text-white font-semibold shadow-xs"
+                                            : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70"
+                                            }`}
                                     >
                                         {l.label}
                                     </button>

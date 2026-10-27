@@ -24,12 +24,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Role check to align with frontend selector
-    if (role && user.role !== role) {
-      return NextResponse.json(
-        { error: `This account is registered as a ${user.role}, not a ${role}.` },
-        { status: 400 }
-      );
+    // RBAC Portal & Role verification
+    if (role) {
+      if (role === "staff") {
+        if (user.role === "patient") {
+          return NextResponse.json(
+            { error: "This is a patient account. Please sign in via the Patient tab." },
+            { status: 403 }
+          );
+        }
+      } else if (role === "patient") {
+        if (user.role !== "patient") {
+          const roleLabel =
+            user.role === "doctor"
+              ? "Doctor"
+              : user.role === "admin"
+              ? "Hospital Administrator"
+              : user.role;
+          return NextResponse.json(
+            { error: `This account is registered as hospital staff (${roleLabel}). Please sign in via the Staff tab.` },
+            { status: 403 }
+          );
+        }
+      } else if (user.role !== role) {
+        return NextResponse.json(
+          { error: `This account is registered as a ${user.role}, not a ${role}.` },
+          { status: 400 }
+        );
+      }
     }
 
     const userObj = user.toObject();

@@ -4,17 +4,21 @@ import Link from "next/link";
 import { useApp } from "../context/AppContext";
 import { patientProfile } from "../data/mockData";
 import { Calendar, MessageSquare, Activity, FileText, AlertCircle, ChevronRight, TrendingUp, Heart, Clock, Stethoscope } from "lucide-react";
+import VitalsHistoryModal from "./VitalsHistoryModal";
+import { formatVitalsTimestamp } from "@/lib/dateTime";
 
 export default function PatientDashboard() {
     const { setPage, setActiveChatPartner, currentUser } = useApp();
     const p = patientProfile;
     const [liveSymptoms, setLiveSymptoms] = useState<any[]>([]);
+    const [showVitalsHistory, setShowVitalsHistory] = useState(false);
     const [liveVitals, setLiveVitals] = useState<any>({
         bp: "--",
         weight: "--",
         temp: "--",
         pulse: "--",
-        lastUpdated: ""
+        lastUpdated: "",
+        updatedAt: null,
     });
 
     useEffect(() => {
@@ -35,7 +39,8 @@ export default function PatientDashboard() {
                             weight: data.patient.vitals.weight || "--",
                             temp: data.patient.vitals.temp || "--",
                             pulse: data.patient.vitals.pulse || "--",
-                            lastUpdated: data.patient.vitals.lastUpdated || (data.patient.vitals.bp ? "Recorded" : "")
+                            lastUpdated: data.patient.vitals.lastUpdated || (data.patient.vitals.bp ? "Recorded" : ""),
+                            updatedAt: data.patient.vitals.updatedAt,
                         });
                     } else {
                         setLiveVitals({
@@ -64,14 +69,17 @@ export default function PatientDashboard() {
                 const d = new Date(s.createdAt);
                 if (!isNaN(d.getTime())) {
                     const dayDate = d.toLocaleDateString("en-US", {
+                        timeZone: "Asia/Kolkata",
                         weekday: "short",
                         month: "short",
                         day: "numeric",
                     });
                     const time = d.toLocaleTimeString("en-US", {
+                        timeZone: "Asia/Kolkata",
                         hour: "2-digit",
                         minute: "2-digit",
-                    });
+                        hour12: true,
+                    }) + " IST";
                     return { dayDate, time };
                 }
             } catch {
@@ -169,13 +177,24 @@ export default function PatientDashboard() {
 
                         {/* Vitals */}
                         <div className="mt-6 pt-5 border-t border-slate-100">
-                            <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
-                                    <Activity size={15} className="text-teal-600" />
-                                    Latest Body Vitals
-                                </h4>
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                                        <Activity size={15} className="text-teal-600" />
+                                        Latest Body Vitals
+                                    </h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowVitalsHistory(true)}
+                                        className="text-xs font-semibold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-2.5 py-0.5 rounded-full border border-teal-200 inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                                    >
+                                        <Clock size={11} /> View History
+                                    </button>
+                                </div>
                                 <span className="text-xs text-slate-400">
-                                    {liveVitals.lastUpdated ? `Updated: ${liveVitals.lastUpdated}` : "Awaiting clinical recording"}
+                                    {liveVitals.lastUpdated 
+                                        ? `Updated: ${formatVitalsTimestamp(liveVitals.lastUpdated, liveVitals.updatedAt)}` 
+                                        : "Awaiting clinical recording"}
                                 </span>
                             </div>
                             <div className="grid grid-cols-4 gap-3">
@@ -320,6 +339,15 @@ export default function PatientDashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* Vitals History Modal */}
+            <VitalsHistoryModal
+                isOpen={showVitalsHistory}
+                onClose={() => setShowVitalsHistory(false)}
+                patientId={currentUser?._id}
+                patientName={currentUser?.name || p.name}
+                currentVitals={liveVitals}
+            />
         </div>
     );
 }
